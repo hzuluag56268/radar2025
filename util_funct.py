@@ -1,5 +1,5 @@
 from settings import *  
-from pyproj import Geod
+
 def latlon_to_pixel(lat, lon):
     x = int((lon - LON_MIN) / (LON_MAX - LON_MIN) * SCREEN_WIDTH)
     y = int((LAT_MAX - lat) / (LAT_MAX - LAT_MIN) * SCREEN_HEIGHT)
