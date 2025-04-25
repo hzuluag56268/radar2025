@@ -560,10 +560,10 @@ if __name__ == '__main__':
     font = pygame.font.Font(None, 36)
 
     # Get exercise input
-    exercise_num = get_exercise_input(screen, font)
+    #exercise_num = get_exercise_input(screen, font)
 
     # Pass the exercise number to the Game instance
     radar = Game()
-    radar.exercise_num = exercise_num  # Set exercise number
+    radar.exercise_num = 0 # Set exercise number
     radar.run()
 
