@@ -1,6 +1,4 @@
-import pygame
-import time
-from pyproj import Geod
+
 from settings import *
 from util_funct import *
 # Pygame initialization
