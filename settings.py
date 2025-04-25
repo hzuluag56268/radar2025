@@ -123,3 +123,4 @@ LAT_MAX = 8.61
 LON_MIN = -73.08
 LON_MAX = -72.35
 
+# settings.py
