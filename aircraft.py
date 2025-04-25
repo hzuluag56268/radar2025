@@ -1,3 +1,6 @@
+from settings import *
+
+
 class Aircraft(pygame.sprite.Sprite):
     def __init__(self, groups, color, route_name, speed,label, screen, ui, acft_type):  # Added `label` parameter
         super().__init__(groups)
