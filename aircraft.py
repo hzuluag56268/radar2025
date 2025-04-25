@@ -4,34 +4,38 @@ from settings import *
 class Aircraft(pygame.sprite.Sprite):
     def __init__(self, groups, color, route_name, speed,label, screen, ui, acft_type):  # Added `label` parameter
         super().__init__(groups)
+        self.color = color
         self.route_name = route_name
+        self.speed = speed
+        self.label = label  # Added to store a unique identifier for the aircraft
+        self.screen = screen
+        self.ui = ui
+        self.acft_type = acft_type
+        
         self.route_type = ROUTES[self.route_name]["type"]
         self.start_pos = ROUTES[self.route_name]["pixel_points"][0]
+        self.altitude =self.start_altitude = ROUTES[self.route_name]['altitude']
+        self.desired_altitude = 6000 if ROUTES[self.route_name]["type"] == "star" else 24000
+        self.moving_point = ROUTES[self.route_name]["pixel_points"][0]
+        
         self.radius = 8
-        self.color = color
-        self.label = label  # Added to store a unique identifier for the aircraft
+        self.descent_rate = 333  # feet per nautical mile
         self.creation_time = time.time()
         self.start_segment_time = time.time()
-        self.speed = speed
-        self.acft_type = acft_type
+
         self.cumulative_distance_to_last_descent = 0
         self.partial_cumulative_distance_travelled = 0
         self.cumulative_distance_travelled = 0
         self.cumulative_segment_distance = 0
         self.current_segment = 0
         self.current_segment_distance_nm = 0
-        self.ui = ui
-        self.altitude =self.start_altitude = ROUTES[self.route_name]['altitude']
-        self.desired_altitude = 6000 if ROUTES[self.route_name]["type"] == "star" else 24000
         self.image = pygame.Surface((self.radius * 2, self.radius * 2), pygame.SRCALPHA)
         pygame.draw.circle(self.image, self.color, (self.radius, self.radius), self.radius)
         self.rect = self.image.get_rect(center= self.start_pos)
-        self.moving_point = ROUTES[self.route_name]["pixel_points"][0]
-        self.descent_rate = 333  # feet per nautical mile
         self.in_holding_pattern = False
         self.pending_holding_pattern = False
         self.finish_holding_pattern = False
-        self.screen = screen
+        
         self.label_offset = (15, -20)  # Default offset for the label relative to the aircraft
         self.dragging_label = False  # Track whether the label is being dragged
 
