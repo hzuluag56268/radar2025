@@ -46,17 +46,7 @@ class Aircraft(pygame.sprite.Sprite):
         self.dragging_label = False  # Track whether the label is being dragged
 
 
-    def interpolate(self, p1, p2, t):
-        x = p1[0] + (p2[0] - p1[0]) * t
-        y = p1[1] + (p2[1] - p1[1]) * t
-        return (x, y)
-
-    def calculate_altitude(self, cumulative_distance_from_last_descent, start_altitude, desired_altitude):
-        if ROUTES[self.route_name]["type"] == "star":
-            return max(start_altitude - (cumulative_distance_from_last_descent * self.descent_rate), desired_altitude)    
-        else:
-            return min(start_altitude + (cumulative_distance_from_last_descent * self.descent_rate), desired_altitude)
-    #
+    
     def draw_label(self, screen, font, icon=None):
         """
         Draws a radar-style label with each piece of information displayed on a separate line.
@@ -162,6 +152,18 @@ class Aircraft(pygame.sprite.Sprite):
         self.ui.show_menu = True
         
         self.ui.acft = self
+    def interpolate(self, p1, p2, t):
+        x = p1[0] + (p2[0] - p1[0]) * t
+        y = p1[1] + (p2[1] - p1[1]) * t
+        return (x, y)
+
+    def calculate_altitude(self, cumulative_distance_from_last_descent, start_altitude, desired_altitude):
+        if ROUTES[self.route_name]["type"] == "star":
+            return max(start_altitude - (cumulative_distance_from_last_descent * self.descent_rate), desired_altitude)    
+        else:
+            return min(start_altitude + (cumulative_distance_from_last_descent * self.descent_rate), desired_altitude)
+    #
+
     def update_pos(self):
         p1, p2 = ROUTES[self.route_name]["pixel_points"][self.current_segment], \
                  ROUTES[self.route_name]["pixel_points"][self.current_segment + 1]
