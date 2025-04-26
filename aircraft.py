@@ -163,7 +163,7 @@ class Aircraft(pygame.sprite.Sprite):
         else:
             return min(start_altitude + (cumulative_distance_from_last_descent * self.descent_rate), desired_altitude)
     #
-
+    #Estas funciones  que tiene update son usadas dentro de la función update.
     def update_pos(self):
         p1, p2 = ROUTES[self.route_name]["pixel_points"][self.current_segment], \
                  ROUTES[self.route_name]["pixel_points"][self.current_segment + 1]
