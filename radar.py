@@ -83,6 +83,7 @@ class Game:
     def run(self):
         start_time = time.time()  # Initialize start time
         while self.running:
+            dt = self.clock.tick(60) / 1000.0 # Limita a 60 FPS y convierte ms a s
             self.elapsed_time =  time.time() - start_time
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -117,7 +118,7 @@ class Game:
                 for i in range(len(route_data["pixel_points"]) - 1):
                     pygame.draw.aaline(self.screen, route_data["color"], route_data["pixel_points"][i], route_data["pixel_points"][i + 1], 1)
                     
-            self.all_sprites.update()
+            self.all_sprites.update(dt)
             self.all_sprites.draw(self.screen)
             self.ui.update()
             self.ui.draw()
@@ -139,6 +140,6 @@ if __name__ == '__main__':
 
     # Pass the exercise number to the Game instance
     radar = Game()
-    radar.exercise_num = 1  # Set exercise number
+    radar.exercise_num = 0  # Set exercise number
     radar.run()
 

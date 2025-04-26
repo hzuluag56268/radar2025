@@ -1,12 +1,12 @@
 from settings import *
 
-
+#Revisar si puedo quitar. self.current_segment_distance_nm = 0 En el init y dejarlo solo como una variable de la función update.
 class Aircraft(pygame.sprite.Sprite):
-    def __init__(self, groups, color, route_name, speed,label, screen, ui, acft_type):  # Added `label` parameter
+    def __init__(self, groups, color, route_name, initial_speed,label, screen, ui, acft_type):  # Added `label` parameter
         super().__init__(groups)
         self.color = color
         self.route_name = route_name
-        self.speed = speed
+        self.current_speed = float(initial_speed)  # Convert to float for accurate calculation of initial_speed
         self.label = label  # Added to store a unique identifier for the aircraft
         self.screen = screen
         self.ui = ui
@@ -21,17 +21,23 @@ class Aircraft(pygame.sprite.Sprite):
         self.radius = 8
         self.descent_rate = 333  # feet per nautical mile
         self.creation_time = time.time()
-        self.start_segment_time = time.time()
+        
 
-        self.cumulative_distance_to_last_descent = 0
-        self.partial_cumulative_distance_travelled = 0
-        self.cumulative_distance_travelled = 0
-        self.cumulative_segment_distance = 0
+        self.distance_covered_on_segment_nm = 0.0
+        self.target_speed = float(initial_speed)  # Convert to float for accurate calculation of initial_speed0
+        self.acceleration_rate = 5.0
+
+        self.cumulative_distance_to_last_descent = 0.0
+        self.partial_cumulative_distance_travelled = 0.0
+
+        
+        
         self.current_segment = 0
         self.current_segment_distance_nm = 0
         self.image = pygame.Surface((self.radius * 2, self.radius * 2), pygame.SRCALPHA)
         pygame.draw.circle(self.image, self.color, (self.radius, self.radius), self.radius)
         self.rect = self.image.get_rect(center= self.start_pos)
+        
         self.in_holding_pattern = False
         self.pending_holding_pattern = False
         self.finish_holding_pattern = False
@@ -63,7 +69,7 @@ class Aircraft(pygame.sprite.Sprite):
         label_lines = [
             f"{self.label}",             # Aircraft identifier
             f"{self.altitude/100:.0f}00 ft",  # Current altitude
-            #f"{self.speed} kts",      # Aircraft speed
+            f"{self.current_speed} kts",      # Aircraft current_speed
             f"{self.acft_type}"
         ]
 
@@ -158,28 +164,52 @@ class Aircraft(pygame.sprite.Sprite):
         self.ui.acft = self
         
 
-    def update(self):
+    def update(self, dt):
+        if dt == 0:
+            return
         #self.get_input()
+         # --- 1. Actualizar Velocidad Instantánea ---
+    # Decide si self.target_speed debe cambiar (basado en altitud, etc.)
+
+        if self.altitude < 10000 and self.current_speed > 250 and self.target_speed > 250:
+            print(f"{self.label}: Estableciendo target_speed a 250 kts")
+            self.target_speed = 250.0
+        speed_difference = self.target_speed - self.current_speed
         
+        if abs(speed_difference) > 0.1: # Un pequeño umbral para evitar oscilaciones
+            change = self.acceleration_rate * dt * (1 if speed_difference > 0 else -1)
+            # No sobrepasar el objetivo
+            if abs(change) > abs(speed_difference):
+                self.current_speed = self.target_speed
+            else:
+                self.current_speed += change
+
+         #--- 2. Calcular Distancia Recorrida en este Frame ---
+        distance_this_frame_nm = self.current_speed * (dt / 3600.0)
+        self.distance_covered_on_segment_nm += distance_this_frame_nm
+
         p1, p2 = ROUTES[self.route_name]["pixel_points"][self.current_segment], \
                  ROUTES[self.route_name]["pixel_points"][self.current_segment + 1]
+        
         self.current_segment_distance_nm = ROUTES[self.route_name]["distances"][self.current_segment]
-        time_required_sec = (self.current_segment_distance_nm / self.speed) * 3600
-        segment_elapsed = time.time() - self.start_segment_time
-        t = min(segment_elapsed / time_required_sec, 1)
-        self.moving_point = self.interpolate(p1, p2, t)
+        
+        
+        t_distance = self.distance_covered_on_segment_nm / self.current_segment_distance_nm
+        t_distance = max(0.0, min(t_distance, 1.0)) 
+        self.moving_point = self.interpolate(p1, p2, t_distance)
         self.rect.center = self.moving_point
-        self.cumulative_segment_distance = t * self.current_segment_distance_nm
-        self.cumulative_distance_travelled = \
-            (self.partial_cumulative_distance_travelled + self.cumulative_segment_distance) - \
+        
+        # --- 3. Actualizar Altitud ---
+        dist_for_alt_calc  = \
+            (self.partial_cumulative_distance_travelled + self.distance_covered_on_segment_nm) - \
             self.cumulative_distance_to_last_descent
         self.altitude = \
-            self.calculate_altitude(self.cumulative_distance_travelled, self.start_altitude, self.desired_altitude)
+            self.calculate_altitude(dist_for_alt_calc , self.start_altitude, self.desired_altitude)
 
-        if t >= 1:
+        if t_distance >= 1:
             self.partial_cumulative_distance_travelled += self.current_segment_distance_nm
             self.current_segment += 1
-            self.start_segment_time = time.time()
+            
             if self.current_segment >= len(ROUTES[self.route_name]["pixel_points"]) - 1:
                 if self.in_holding_pattern and self.finish_holding_pattern:
                     self.kill()
@@ -187,6 +217,8 @@ class Aircraft(pygame.sprite.Sprite):
                     self.in_holding_pattern = True
                     self.current_segment = 0
                     self.route_name = "HOLDING"
+                    holding_speed = 200 # Ejemplo
+                    self.target_speed = holding_speed
                 elif not self.in_holding_pattern and not self.pending_holding_pattern:
                     self.kill()
                 elif self.in_holding_pattern:
