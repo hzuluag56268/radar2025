@@ -19,13 +19,13 @@ class Aircraft(pygame.sprite.Sprite):
         self.moving_point = ROUTES[self.route_name]["pixel_points"][0]
         
         self.radius = 8
-        self.descent_rate = 333  # feet per nautical mile
+        self.descent_rate = 400  # feet per nautical mile
         self.creation_time = time.time()
         
 
         self.distance_covered_on_segment_nm = 0.0
         self.target_speed = float(initial_speed)  # Convert to float for accurate calculation of initial_speed0
-        self.acceleration_rate = 5.0
+        self.acceleration_rate = 1.0
 
         self.cumulative_distance_to_last_descent = 0.0
         self.partial_cumulative_distance_travelled = 0.0
@@ -162,20 +162,31 @@ class Aircraft(pygame.sprite.Sprite):
         self.ui.show_menu = True
         
         self.ui.acft = self
+    def update_pos(self):
+        p1, p2 = ROUTES[self.route_name]["pixel_points"][self.current_segment], \
+                 ROUTES[self.route_name]["pixel_points"][self.current_segment + 1]
         
-
-    def update(self, dt):
-        if dt == 0:
-            return
-        #self.get_input()
-         # --- 1. Actualizar Velocidad Instantánea ---
+        self.current_segment_distance_nm = ROUTES[self.route_name]["distances"][self.current_segment]
+        
+        
+        self.t_distance = self.distance_covered_on_segment_nm / self.current_segment_distance_nm
+        self.t_distance = max(0.0, min(self.t_distance, 1.0)) 
+        self.moving_point = self.interpolate(p1, p2, self.t_distance)
+        self.rect.center = self.moving_point
+    def update_altitude(self):
+        dist_for_alt_calc  = \
+            (self.partial_cumulative_distance_travelled + self.distance_covered_on_segment_nm) - \
+            self.cumulative_distance_to_last_descent
+        self.altitude = \
+            self.calculate_altitude(dist_for_alt_calc , self.start_altitude, self.desired_altitude)
+    def update_speed(self, dt):
     # Decide si self.target_speed debe cambiar (basado en altitud, etc.)
 
         if self.altitude < 10000 and self.current_speed > 250 and self.target_speed > 250:
             print(f"{self.label}: Estableciendo target_speed a 250 kts")
             self.target_speed = 250.0
-        speed_difference = self.target_speed - self.current_speed
         
+        speed_difference = self.target_speed - self.current_speed
         if abs(speed_difference) > 0.1: # Un pequeño umbral para evitar oscilaciones
             change = self.acceleration_rate * dt * (1 if speed_difference > 0 else -1)
             # No sobrepasar el objetivo
@@ -187,26 +198,9 @@ class Aircraft(pygame.sprite.Sprite):
          #--- 2. Calcular Distancia Recorrida en este Frame ---
         distance_this_frame_nm = self.current_speed * (dt / 3600.0)
         self.distance_covered_on_segment_nm += distance_this_frame_nm
-
-        p1, p2 = ROUTES[self.route_name]["pixel_points"][self.current_segment], \
-                 ROUTES[self.route_name]["pixel_points"][self.current_segment + 1]
         
-        self.current_segment_distance_nm = ROUTES[self.route_name]["distances"][self.current_segment]
-        
-        
-        t_distance = self.distance_covered_on_segment_nm / self.current_segment_distance_nm
-        t_distance = max(0.0, min(t_distance, 1.0)) 
-        self.moving_point = self.interpolate(p1, p2, t_distance)
-        self.rect.center = self.moving_point
-        
-        # --- 3. Actualizar Altitud ---
-        dist_for_alt_calc  = \
-            (self.partial_cumulative_distance_travelled + self.distance_covered_on_segment_nm) - \
-            self.cumulative_distance_to_last_descent
-        self.altitude = \
-            self.calculate_altitude(dist_for_alt_calc , self.start_altitude, self.desired_altitude)
-
-        if t_distance >= 1:
+    def update_segment_or_hold(self):
+        if self.t_distance >= 1:
             self.partial_cumulative_distance_travelled += self.current_segment_distance_nm
             self.current_segment += 1
             
@@ -223,6 +217,19 @@ class Aircraft(pygame.sprite.Sprite):
                     self.kill()
                 elif self.in_holding_pattern:
                     self.current_segment = 0
+    def update(self, dt):
+        if dt == 0:
+            return
+        #self.get_input()
+         # --- 1. Actualizar Velocidad Instantánea ---
+        self.update_speed(dt)
         
+        self.update_pos()
+        # --- 3. Actualizar Altitud ---
+        self.update_altitude() 
+        # --- 4. Actualizar Segmento ---
+        #   4.1. Calcular Distancia Recorrida en el Segmento Actual
+        self.update_segment_or_hold()
+
         self.draw_label(self.screen, pygame.font.Font(None, 24))
         
