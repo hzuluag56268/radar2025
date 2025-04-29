@@ -70,7 +70,7 @@ class ui():
              if self.is_continue_descent:
                 self.acft.start_altitude = self.acft.altitude
                 self.acft.cumulative_distance_to_last_descent = \
-                    self.acft.partial_cumulative_distance_travelled + self.acft.cumulative_segment_distance
+                    self.acft.partial_cumulative_distance_travelled + self.acft.distance_covered_on_segment_nm
                 self.is_continue_descent = False
                 print(f"start altitude updated to {self.acft.start_altitude}")
 
