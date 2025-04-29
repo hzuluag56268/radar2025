@@ -9,7 +9,7 @@ class Aircraft(pygame.sprite.Sprite):
         self.current_speed = float(initial_speed)  # Convert to float for accurate calculation of initial_speed
         self.label = label  # Added to store a unique identifier for the aircraft
         self.screen = screen
-        self.ui = ui
+        
         self.acft_type = acft_type
         
         self.route_type = ROUTES[self.route_name]["type"]
@@ -45,7 +45,9 @@ class Aircraft(pygame.sprite.Sprite):
         self.label_offset = (15, -20)  # Default offset for the label relative to the aircraft
         self.dragging_label = False  # Track whether the label is being dragged
 
-
+         #Añadir un Rect para la etiqueta (para detección de clics)
+        self.label_rect = pygame.Rect(0, 0, 0, 0) # Inicializar
+        self._is_pending_continue_descent_or_climb = False
     
     def draw_label(self, screen, font, icon=None):
         """
@@ -87,6 +89,9 @@ class Aircraft(pygame.sprite.Sprite):
         rect_x = max(0, min(rect_x, screen.get_width() - rect_width))
         rect_y = max(0, min(rect_y, screen.get_height() - rect_height))
         self.label_position = (rect_x, rect_y)
+
+        self.label_rect.topleft = (rect_x, rect_y)
+        self.label_rect.size = (rect_width, rect_height)
 
         # Draw a thin line connecting the label to the aircraft
         pygame.draw.line(screen, radar_green, self.rect.center, (rect_x + rect_width / 2, rect_y), 1)
@@ -130,16 +135,14 @@ class Aircraft(pygame.sprite.Sprite):
                 # Update the offset relative to the aircraft
                 self.label_offset = (self.label_position[0] - self.rect.centerx,
                                      self.label_position[1] - self.rect.centery)
-        elif mouse_pressed[2]:  # Right mouse button is pressed
-            if label_rect.collidepoint(mouse_pos):
-                # Right-click selects the aircraft
-                self.acft_selected()
+        
         else:
             # Stop dragging when the mouse button is released
             self.dragging_label = False
             # Update the offset relative to the aircraft
             self.label_offset = (self.label_position[0] - self.rect.centerx,
                                  self.label_position[1] - self.rect.centery)
+    '''
     def acft_selected(self):
         if self.ui.show_menu:
             return
@@ -152,6 +155,43 @@ class Aircraft(pygame.sprite.Sprite):
         self.ui.show_menu = True
         
         self.ui.acft = self
+        '''
+    def is_label_clicked(self, pos):
+        """ Verifica si la posición dada está dentro del rectángulo de la etiqueta. """
+    # self.label_rect se actualiza en draw_label
+        return self.label_rect.collidepoint(pos)
+    def set_desired_altitude(self, altitude_str):
+        """ Establece la altitud deseada (llamado por Game). """
+        try:
+            # Reiniciar descenso/ascenso si es continuación
+            if hasattr(self, '_is_pending_continue_descent_or_climb') and self._is_pending_continue_descent_or_climb:
+                self.start_altitude = self.altitude #
+                # Calcula distancia acumulada hasta el punto actual
+                self.cumulative_distance_to_last_descent = \
+                    self.partial_cumulative_distance_travelled + self.distance_covered_on_segment_nm
+                self._is_pending_continue_descent_or_climb = False # Resetear bandera
+                print(f"{self.label}: Altitud de inicio actualizada a {self.start_altitude}")
+
+            self.desired_altitude = int(altitude_str) #
+            print(f"{self.label}: Altitud deseada actualizada a {self.desired_altitude}")
+        except ValueError:
+            print(f"Error: Valor de altitud inválido '{altitude_str}' para {self.label}")
+
+    def set_pending_holding(self, flag: bool):
+        """ Establece si la aeronave debe entrar en holding (llamado por Game). """
+        self.pending_holding_pattern = flag #
+        print(f"{self.label}: Pending holding pattern: {self.pending_holding_pattern}")
+
+    def set_finish_holding(self, flag: bool):
+        """ Establece si la aeronave debe terminar el holding (llamado por Game). """
+        self.finish_holding_pattern = flag #
+        print(f"{self.label}: Finish holding pattern: {self.finish_holding_pattern}")
+
+    def set_continue_descent_climb_flag(self, flag: bool):
+        """ Bandera temporal para indicar que el próximo set_desired_altitude es una continuación """
+        # Asegúrate de inicializar esta bandera en __init__
+        # self._is_pending_continue_descent_or_climb = False
+        self._is_pending_continue_descent_or_climb = flag
     def interpolate(self, p1, p2, t):
         x = p1[0] + (p2[0] - p1[0]) * t
         y = p1[1] + (p2[1] - p1[1]) * t
