@@ -142,6 +142,7 @@ class Aircraft(pygame.sprite.Sprite):
             # Update the offset relative to the aircraft
             self.label_offset = (self.label_position[0] - self.rect.centerx,
                                  self.label_position[1] - self.rect.centery)
+    #def acft_selected(self):
     '''
     def acft_selected(self):
         if self.ui.show_menu:

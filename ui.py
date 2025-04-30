@@ -11,49 +11,53 @@ class ui():
         self.route_name = None
         self.option_height = 25
         self.show_menu = False
-        self.acft = None
         self.level_window_active = False
         self.string_level = ""
         self.update_level = False
         self.is_continue_descent = False
+        self.active_aircraft_type = None # Guardar tipo de ruta (star/sid) para opciones de menú
         self.is_star = None 
         self.star_options =  ["Join Holding Pattern", "Finish Holding Pattern", "Stop descent at","Continue descent to", "disregard"]
         self.sid_options = ["Stop climb at", "continue climb to ", "disregard"]
         
+
         self.menu_options =  None
         self.rows = None
 
-    def get_input(self, text_rect,i):
+    # En ui.py, clase ui
+    def process_menu_click(self, pos):
+        """ Procesa un clic en el menú y devuelve la acción seleccionada, o None. """
+        if not self.show_menu: #
+            return None
 
-        if  text_rect.collidepoint(pygame.mouse.get_pos()) and pygame.mouse.get_pressed()[0]:
-            if self.menu_options[i] == "Join Holding Pattern":
-                self.show_menu = False
-                self.acft.pending_holding_pattern = True
-            if self.menu_options[i] == "Finish Holding Pattern":
-                self.acft.finish_holding_pattern = True
-                self.show_menu = False
-            if self.menu_options[i] == "Stop descent at":
-                self.show_menu = False
-                self.level_window_active = True
-                self.string_level = ""     
-            if self.menu_options[i] == "Continue descent to":
-                self.level_window_active = True
-                self.show_menu = False
-                self.string_level = ""     
-                self.is_continue_descent = True
-            if self.menu_options[i] == "disregard":
-                self.show_menu = False
-            if self.menu_options[i] == "Stop climb at":
-                print("stop climb at")
-                self.show_menu = False
-                self.level_window_active = True
-                self.string_level = ""     
-            if self.menu_options[i] == "continue climb to ":
-                self.level_window_active = True
-                self.show_menu = False
-                self.string_level = ""     
-                self.is_continue_descent = True
-                print("continue climb to ")
+        # Reconstruir el Rect del menú para verificar colisión
+        menu_rect = pygame.Rect(self.left + 10, self.top + 10, self.cols * 400, self.rows * self.option_height) #
+        if not menu_rect.collidepoint(pos):
+            # Clic fuera del menú (Game lo cerrará)
+            return "close_menu" # Identificador especial
+
+        # Calcular en qué opción se hizo clic (lógica similar a draw)
+        for col in range(self.cols): #
+            for row in range(self.rows): #
+                # Calcular centro de la opción
+                x = menu_rect.left + menu_rect.width / (self.cols * 2) + (menu_rect.width / self.cols) * col
+                y = menu_rect.top + menu_rect.height / (self.rows * 2) + (menu_rect.height / self.rows) * row
+                i = row # Asumiendo una sola columna
+
+                # Crear un Rect temporal para la opción de texto
+                option_text_surf = self.font.render(self.menu_options[i], True, (0, 255, 0)) #
+                option_text_rect = option_text_surf.get_rect(center=(x, y)) #
+
+                if option_text_rect.collidepoint(pos):
+                    selected_action = self.menu_options[i] #
+                    print(f"UI: Acción seleccionada '{selected_action}'")
+
+                    # Guardar si la acción implica continuar descenso/ascenso
+                    self.is_continue_descent = "Continue" in selected_action or "continue" in selected_action #
+
+                    return selected_action # Devolver la acción
+        return None # No se hizo clic en ninguna opción
+    
     def show_level(self):
         
         if self.level_window_active: 
@@ -65,20 +69,54 @@ class ui():
             text_rect2 = text_surf2.get_rect(center = (rect2.centerx,rect2.centery))
             self.display_surface.blit(text_surf2, text_rect2)
         
-    def update(self):
-        if self.update_level:
-             if self.is_continue_descent:
-                self.acft.start_altitude = self.acft.altitude
-                self.acft.cumulative_distance_to_last_descent = \
-                    self.acft.partial_cumulative_distance_travelled + self.acft.distance_covered_on_segment_nm
-                self.is_continue_descent = False
-                print(f"start altitude updated to {self.acft.start_altitude}")
+    
+    def display_menu(self, position, aircraft_route_type):
+        """ Muestra el menú en la posición dada, adaptado al tipo de ruta. """
+        self.left, self.top = position #
+        self.active_aircraft_type = aircraft_route_type # Guardar tipo
 
-             self.acft.desired_altitude = int(self.string_level)
-             self.update_level = False
-            
-             print("level updated to ", self.acft.desired_altitude)
+        # Determinar opciones según el tipo de ruta (STAR o SID)
+        is_star = aircraft_route_type == "star"
+        self.menu_options = self.star_options if is_star else self.sid_options #
+        self.rows = len(self.menu_options) #
+        self.show_menu = True #
+        self.level_window_active = False # Asegurarse que la ventana de nivel esté cerrada
 
+    def hide_menu(self):
+        """ Oculta el menú. """
+        self.show_menu = False #
+
+    def display_level_input(self, position):
+        """ Muestra la ventana de entrada de nivel. """
+        self.string_level = "" # Resetear texto
+        # Podrías usar la 'position' para colocar la ventana cerca del clic
+        # O usar una posición fija (ej. centro pantalla o self.left/self.top)
+        self.level_window_active = True #
+        self.show_menu = False # Ocultar menú si estaba visible
+
+    def hide_level_input(self):
+        """ Oculta la ventana de entrada de nivel y devuelve el valor. """
+        self.level_window_active = False #
+        entered_level = self.string_level #
+        self.string_level = "" # Limpiar para la próxima vez
+        return entered_level # Devolver valor ingresado
+
+    def handle_level_input_keypress(self, event):
+        """ Procesa eventos de teclado para la entrada de nivel. Devuelve True si se presionó Enter. """
+        if not self.level_window_active: #
+            return False
+
+        if event.key == pygame.K_RETURN: # (Originalmente en Game, ahora encapsulado aquí)
+            print("UI: Enter presionado en Level Input")
+            # Game llamará a hide_level_input para obtener el valor
+            return True # Indica que se completó la entrada
+        elif event.key == pygame.K_BACKSPACE: #
+            self.string_level = self.string_level[:-1] #
+        elif event.unicode.isdigit(): #
+            self.string_level += event.unicode #
+        return False # Entrada aún no completada
+
+    
     def draw(self):
         if self.is_star:
             self.menu_options = self.star_options
