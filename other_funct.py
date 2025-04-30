@@ -46,25 +46,3 @@ def get_exercise_input(screen, font):
 
         pygame.display.flip()  # Update the display
 
-def collision_check(sprite_group, screen):
-    """
-    Check for potential conflicts between aircraft and visualize separations on the radar.
-
-    Args:
-        sprite_group (pygame.sprite.Group): Group containing all aircraft sprites.
-        screen (pygame.Surface): Pygame surface to draw conflict lines.
-    """
-    all_sprites = list(sprite_group)  # Convert group to list for indexed iteration
-    for i, acft1 in enumerate(all_sprites):
-        for j, acft2 in enumerate(all_sprites):
-            if j <= i:  # Avoid duplicate comparisons
-                continue
-            
-            # Altitude and horizontal separation check
-            if abs(acft1.altitude - acft2.altitude) < 1000:
-                separation = pixel_distance_to_nm(acft1.rect.center, acft2.rect.center)
-                if separation < 10:
-                    # Red for critical separation, yellow for warning
-                    color = (255, 0, 0) if separation < 5 else (255, 255, 0)
-                    pygame.draw.aaline(screen, color, acft1.rect.center, acft2.rect.center, 1)
-                    print(f"Separation between {acft1.label} and {acft2.label}: {separation:.2f} NM")

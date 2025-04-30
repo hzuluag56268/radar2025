@@ -36,7 +36,7 @@ ROUTES = {
             (7.92742, -72.51161)                      # R18600
         ],
         "color": (178, 190, 181),
-        "altitude": 16000,
+        "altitude": 11000,
         "type": "star"
     },
     "HOLDING": {
