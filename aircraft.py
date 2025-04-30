@@ -2,7 +2,7 @@ from settings import *
 
 #Revisar si puedo quitar. self.current_segment_distance_nm = 0 En el init y dejarlo solo como una variable de la función update.
 class Aircraft(pygame.sprite.Sprite):
-    def __init__(self, groups, color, route_name, initial_speed,label, screen, ui, acft_type):  # Added `label` parameter
+    def __init__(self, groups, color, route_name, initial_speed,label, screen, acft_type):  # Added `label` parameter
         super().__init__(groups)
         self.color = color
         self.route_name = route_name
@@ -61,7 +61,7 @@ class Aircraft(pygame.sprite.Sprite):
         label_lines = [
             f"{self.label}",             # Aircraft identifier
             f"{self.altitude/100:.0f}00 ft",  # Current altitude
-            f"{self.current_speed} kts",      # Aircraft current_speed
+            f"{self.current_speed:.0f} kts",      # Aircraft current_speed
             f"{self.acft_type}"
         ]
 
@@ -211,6 +211,9 @@ class Aircraft(pygame.sprite.Sprite):
         
         self.current_segment_distance_nm = ROUTES[self.route_name]["distances"][self.current_segment]
         
+        print('---')
+        print(self.distance_covered_on_segment_nm)
+        print(self.current_segment_distance_nm)
         
         self.t_distance = self.distance_covered_on_segment_nm / self.current_segment_distance_nm
         self.t_distance = max(0.0, min(self.t_distance, 1.0)) 
@@ -246,6 +249,7 @@ class Aircraft(pygame.sprite.Sprite):
         if self.t_distance >= 1:
             self.partial_cumulative_distance_travelled += self.current_segment_distance_nm
             self.current_segment += 1
+            self.distance_covered_on_segment_nm = 0
             
             if self.current_segment >= len(ROUTES[self.route_name]["pixel_points"]) - 1:
                 if self.in_holding_pattern and self.finish_holding_pattern:

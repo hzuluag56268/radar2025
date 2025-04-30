@@ -118,13 +118,11 @@ class ui():
 
     
     def draw(self):
-        if self.is_star:
-            self.menu_options = self.star_options
-            self.rows = len(self.menu_options)
-        else:
-            self.menu_options = self.sid_options
-            self.rows = len(self.menu_options)    
-
+        if self.level_window_active: #
+            self.show_level() #
+        if not self.show_menu: #
+            return
+        
         if self.level_window_active:
             self.show_level()
         # bg
@@ -144,9 +142,12 @@ class ui():
             for row in range(self.rows):
                 x = rect.left + rect.width / (self.cols * 2) + (rect.width / self.cols) * col
                 y = rect.top + rect.height / (self.rows * 2) + (rect.height / self.rows) * row
-                i = row  
-                text_surf = self.font.render(self.menu_options[i], True, (0, 255, 0))
-                text_rect = text_surf.get_rect(center = (x,y))
-                self.display_surface.blit(text_surf, text_rect)
-                self.get_input(text_rect,i) 
+                i = row
+                # Asegúrate de que self.menu_options no sea None antes de acceder
+                if self.menu_options and i < len(self.menu_options):
+                    text_surf = self.font.render(self.menu_options[i], True, (0, 255, 0))
+                    text_rect = text_surf.get_rect(center = (x,y))
+                    self.display_surface.blit(text_surf, text_rect)
+                    # self.get_input(text_rect,i) # <-- Mover el manejo de input a Game.run
+        
         

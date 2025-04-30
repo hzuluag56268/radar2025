@@ -29,11 +29,11 @@ class Game:
         #print(f"Exercise number: {self.exercise_num}")
         self.aircraft_timers = {
                                 0 : [
-                                    {'name':'UMPEX1A', 'time':0, 'speed':240, 'label':'EFY9070','acft_type':'ATR45'},
-                                    {'name':'DIMIL6A', 'time':0, 'speed':180, 'label':'JEC5678','acft_type':'A320'},
-                                    {'name':'ESNUT2B', 'time':0, 'speed':290, 'label':'AVA9321','acft_type':'A320'},
-                                    {'name':'DIMIL_star', 'time':0, 'speed':250, 'label':'CMP9345','acft_type':'B737'},
-                                    {'name':'ESNUT2A', 'time':1, 'speed':290, 'label':'AVA9571','acft_type':'A320'}
+                                    {'name':'UMPEX1A', 'time':0, 'speed':280, 'label':'EFY9070','acft_type':'ATR45'},
+                                    {'name':'DIMIL6A', 'time':0, 'speed':280, 'label':'JEC5678','acft_type':'A320'},
+                                    {'name':'ESNUT2A', 'time':0, 'speed':280, 'label':'AVA9321','acft_type':'A320'},
+                                    {'name':'DIMIL_star', 'time':0, 'speed':280, 'label':'CMP9345','acft_type':'B737'},
+                                    {'name':'ESNUT2B', 'time':1, 'speed':280, 'label':'AVA9571','acft_type':'A320'}
                                 ], 
                                 1 : [
                                     {'name':'DIMIL_star', 'time':0, 'speed':200, 'label':'JEC5768','acft_type':'A320'},
@@ -64,9 +64,16 @@ class Game:
                                     {'name':'TORAT2A', 'time':120, 'speed':200, 'label':'EFY9070','acft_type':'ATR45'}, 
                                     {'name':'DIMIL6A', 'time':180, 'speed':200, 'label':'JEC5470','acft_type':'A320'},
                                     {'name':'UMPEX1A', 'time':240, 'speed':200, 'label':'PNC2044','acft_type':'SW4'}
+                                ],
+                                5 : [
+                                    {'name':'UMPEX1A', 'time':0, 'speed':30000, 'label':'AVA9321','acft_type':'A320'},
+                                    #{'name':'ESNUT2B', 'time':60, 'speed':260, 'label':'JEC5678','acft_type':'A320'},
+                                    #{'name':'TORAT2A', 'time':120, 'speed':200, 'label':'EFY9070','acft_type':'ATR45'}, 
+                                    #{'name':'DIMIL6A', 'time':180, 'speed':200, 'label':'JEC5470','acft_type':'A320'},
+                                    #{'name':'UMPEX1A', 'time':240, 'speed':200, 'label':'PNC2044','acft_type':'SW4'}
                                 ]
                                 }
-
+        self.selected_aircraft = None # Para guardar la A/C seleccionada
     def display_time(self):
     # Calculate elapsed time in minutes and seconds
         total_seconds = int(self.elapsed_time)
@@ -79,36 +86,108 @@ class Game:
         # Position the text on the screen
         self.screen.blit(time_text, (10, 10))  # Adjust position as needed
     
-    
-    def run(self):
-        start_time = time.time()  # Initialize start time
-        while self.running:
-            dt = self.clock.tick(60) / 1000.0 # Limita a 60 FPS y convierte ms a s
-            self.elapsed_time =  time.time() - start_time
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.running = False
-                if event.type == pygame.KEYDOWN:
-                    
-                    if self.ui.level_window_active:
-                        
-                        if event.key == pygame.K_RETURN:  # Confirm input
-                            print("key return pressed")
-                            self.ui.level_window_active = False
-                            self.ui.update_level = True
-                        elif event.key == pygame.K_BACKSPACE:  # Remove last character
-                            self.ui.string_level = self.ui.string_level[:-1]
-                        elif event.unicode.isdigit():  # Add digit to input
-                            self.ui.string_level += event.unicode
-            
+    # En radar.py, clase Game, método run
+    def run(self): #
+        start_time = time.time() #
+        while self.running: #
+            dt = self.clock.tick(60) / 1000.0 #
+            self.elapsed_time = time.time() - start_time #
+            # mouse_pos = pygame.mouse.get_pos() # Obtener si es necesario
+
+            for event in pygame.event.get(): #
+                if event.type == pygame.QUIT: #
+                    self.running = False #
+
+                # --- Manejo de Input de Teclado (Pasar a UI si es necesario) ---
+                if event.type == pygame.KEYDOWN: #
+                    if self.ui.level_window_active: # Verificar si la ventana de nivel está activa
+                        enter_pressed = self.ui.handle_level_input_keypress(event) # Pasar evento a UI
+                        if enter_pressed: # Si UI indica que se presionó Enter
+                            entered_level = self.ui.hide_level_input() # Ocultar y obtener valor
+                            if self.selected_aircraft: # Aplicar al seleccionado
+                                # Pasar la bandera de continuación desde UI a Aircraft
+                                self.selected_aircraft.set_continue_descent_climb_flag(
+                                    self.ui.is_continue_descent
+                                )
+                                self.selected_aircraft.set_desired_altitude(entered_level)
+                            # Deseleccionar después de la acción de nivel
+                            self.selected_aircraft = None
+
+                # --- Manejo de Clics del Mouse ---
+                if event.type == pygame.MOUSEBUTTONDOWN: #
+                    # --- Clic Derecho: Seleccionar Aeronave / Mostrar Menú ---
+                    if event.button == 3: # Botón derecho
+                        # Primero, ocultar cualquier menú/ventana existente y deseleccionar
+                        self.ui.hide_menu()
+                        self.ui.hide_level_input()
+                        currently_selected = None # Temporal para guardar la nueva selección
+                        for aircraft in self.all_sprites: # Iterar sobre aeronaves
+                            if aircraft.is_label_clicked(event.pos): # Preguntar a la aeronave
+                                currently_selected = aircraft # Guardar la seleccionada
+                                break # Encontramos una, parar búsqueda
+
+                        self.selected_aircraft = currently_selected # Actualizar selección
+                        if self.selected_aircraft:
+                            print(f"Game: Aeronave seleccionada {self.selected_aircraft.label}")
+                            # Obtener tipo de ruta de la aeronave seleccionada
+                            route_type = self.selected_aircraft.route_type # Acceder al atributo
+                            self.ui.display_menu(event.pos, route_type) # Decirle a UI que muestre menú
+                        else:
+                            # Si no se hizo clic en ninguna etiqueta, no hacer nada o deseleccionar (ya hecho)
+                            print("Game: Clic derecho en espacio vacío.")
+
+
+                    # --- Clic Izquierdo: Procesar Menú ---
+                    elif event.button == 1: # Botón izquierdo
+                        if self.ui.show_menu: # Solo si el menú está visible
+                            action = self.ui.process_menu_click(event.pos) # Preguntar a UI qué acción es
+                            if action: # Si se hizo clic en una opción o fuera
+                                self.ui.hide_menu() # Ocultar menú después del clic
+                                if action == "close_menu":
+                                    self.selected_aircraft = None # Deseleccionar si se hizo clic fuera
+                                elif self.selected_aircraft: # Si había una A/C seleccionada
+                                    # --- Ejecutar Acciones ---
+                                    print(f"Game: Ejecutando acción '{action}' para {self.selected_aircraft.label}")
+                                    if action == "Join Holding Pattern":
+                                        self.selected_aircraft.set_pending_holding(True)
+                                    elif action == "Finish Holding Pattern":
+                                        self.selected_aircraft.set_finish_holding(True)
+                                    elif action == "Stop descent at" or action == "Stop climb at":
+                                        # Decirle a UI que muestre la ventana de nivel
+                                        self.ui.display_level_input(event.pos)
+                                        # No deseleccionar aún, esperar input de nivel
+                                    elif action == "Continue descent to" or action == "continue climb to ":
+                                        # Decirle a UI que muestre la ventana de nivel
+                                        self.ui.display_level_input(event.pos)
+                                        # No deseleccionar aún
+                                    elif action == "disregard":
+                                        print("Game: Acción 'disregard' seleccionada.")
+                                        self.selected_aircraft = None # Deseleccionar
+
+                                    # Deseleccionar si la acción no requiere input de nivel posterior
+                                    if action not in ["Stop descent at", "Stop climb at", "Continue descent to", "continue climb to "]:
+                                        self.selected_aircraft = None
+                                else:
+                                    # Caso raro: clic en menú sin aeronave seleccionada
+                                    self.selected_aircraft = None
+
+                        # Podrías añadir lógica aquí para otros clics izquierdos (ej. arrastrar etiqueta si se movió esa lógica a Game)
+
+
+            # --- Fin del bucle de eventos ---
+
+            # --- Lógica de Actualización ---
             for acft in self.aircraft_timers[self.exercise_num][:]:
                 if self.elapsed_time >= acft['time']:
                     self.Aircraft(self.all_sprites, (0, 100, 0),acft['name'],acft['speed'] ,\
-                                  acft['label'],self.screen,self.ui,acft['acft_type'])
+                                  acft['label'],self.screen,acft['acft_type'])
                     self.aircraft_timers[self.exercise_num].remove(acft)
+            self.all_sprites.update(dt) #
             
-            self.screen.fill((0, 0, 0))
 
+            # --- Lógica de Dibujo ---
+            self.screen.fill((0, 0, 0)) #
+            # ... (dibujo de rutas como antes) ...
             for route_name, route_data in ROUTES.items():
                 route_label = self.font.render(f"{route_name} ", True, (0, 255, 0))
                 if route_data["type"] == "star" and route_name != "DIMIL_star":
@@ -117,18 +196,17 @@ class Game:
                     self.screen.blit(route_label, route_data["pixel_points"][-1] )
                 for i in range(len(route_data["pixel_points"]) - 1):
                     pygame.draw.aaline(self.screen, route_data["color"], route_data["pixel_points"][i], route_data["pixel_points"][i + 1], 1)
-                    
-            self.all_sprites.update(dt)
-            self.all_sprites.draw(self.screen)
-            self.ui.update()
-            self.ui.draw()
+            # Dibujar sprites y sus etiquetas
+            self.all_sprites.draw(self.screen) # Dibuja el círculo/imagen base de los sprites
+            for aircraft in self.all_sprites: # Dibujar etiquetas explícitamente
+                aircraft.draw_label(self.screen, self.font) # Llamar al método de dibujo de etiqueta
 
-            
-            self.display_time()
-            collision_check(self.all_sprites, self.screen)
-            pygame.display.update()
+            self.ui.draw() # Pedir a UI que se dibuje (menú, ventana nivel)
+            self.display_time() #
+            collision_check(self.all_sprites, self.screen) #
+            pygame.display.update() #
 
-        pygame.quit()
+        pygame.quit() #
 
 if __name__ == '__main__':
     #pygame.init()  # Initialize Pygame
