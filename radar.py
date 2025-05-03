@@ -4,9 +4,10 @@ from util_funct import *
 from aircraft import *
 from ui import *
 from other_funct import *
+from views import AircraftLabelView # <<<--- Importar la nueva clase
 # Pygame initialization
-pygame.init()
 
+pygame.init()
 
 
 class Game:
@@ -24,16 +25,16 @@ class Game:
         self.ui = ui()
         self.level_str = ""
         self.exercise_num = 1
-        self.Aircraft = Aircraft
+        #self.Aircraft = Aircraft
         #self.exercise_num = input("Enter the exercise number: ")
         #print(f"Exercise number: {self.exercise_num}")
         self.aircraft_timers = {
                                 0 : [
-                                    {'name':'UMPEX1A', 'time':0, 'speed':280, 'label':'EFY9070','acft_type':'ATR45'},
-                                    {'name':'DIMIL6A', 'time':0, 'speed':280, 'label':'JEC5678','acft_type':'A320'},
-                                    {'name':'ESNUT2A', 'time':0, 'speed':280, 'label':'AVA9321','acft_type':'A320'},
-                                    {'name':'DIMIL_star', 'time':0, 'speed':280, 'label':'CMP9345','acft_type':'B737'},
-                                    {'name':'ESNUT2B', 'time':1, 'speed':280, 'label':'AVA9571','acft_type':'A320'}
+                                    {'name':'UMPEX1A', 'time':0, 'speed':30000, 'label':'EFY9070','acft_type':'ATR45'},
+                                    {'name':'DIMIL6A', 'time':0, 'speed':30000, 'label':'JEC5678','acft_type':'A320'},
+                                    {'name':'ESNUT2A', 'time':0, 'speed':30000, 'label':'AVA9321','acft_type':'A320'},
+                                    {'name':'DIMIL_star', 'time':0, 'speed':30000, 'label':'CMP9345','acft_type':'B737'},
+                                    {'name':'ESNUT2B', 'time':1, 'speed':30000, 'label':'AVA9571','acft_type':'A320'}
                                 ], 
                                 1 : [
                                     {'name':'DIMIL_star', 'time':0, 'speed':200, 'label':'JEC5768','acft_type':'A320'},
@@ -74,6 +75,8 @@ class Game:
                                 ]
                                 }
         self.selected_aircraft = None # Para guardar la A/C seleccionada
+        self.label_views = []
+
     def display_time(self):
     # Calculate elapsed time in minutes and seconds
         total_seconds = int(self.elapsed_time)
@@ -92,8 +95,9 @@ class Game:
         while self.running: #
             dt = self.clock.tick(60) / 1000.0 #
             self.elapsed_time = time.time() - start_time #
+            self.label_views = [lv for lv in self.label_views if lv.aircraft.alive()]
             # mouse_pos = pygame.mouse.get_pos() # Obtener si es necesario
-
+            
             for event in pygame.event.get(): #
                 if event.type == pygame.QUIT: #
                     self.running = False #
@@ -121,17 +125,22 @@ class Game:
                         self.ui.hide_menu()
                         self.ui.hide_level_input()
                         currently_selected = None # Temporal para guardar la nueva selección
-                        for aircraft in self.all_sprites: # Iterar sobre aeronaves
-                            if aircraft.is_label_clicked(event.pos): # Preguntar a la aeronave
-                                currently_selected = aircraft # Guardar la seleccionada
-                                break # Encontramos una, parar búsqueda
+                        
+                        for label_view in self.label_views:
+                            if label_view.is_clicked(event.pos): # Preguntar a la vista
+                                currently_selected = label_view.aircraft # Obtener la aeronave asociada
+                                break
 
                         self.selected_aircraft = currently_selected # Actualizar selección
                         if self.selected_aircraft:
-                            print(f"Game: Aeronave seleccionada {self.selected_aircraft.label}")
-                            # Obtener tipo de ruta de la aeronave seleccionada
-                            route_type = self.selected_aircraft.route_type # Acceder al atributo
-                            self.ui.display_menu(event.pos, route_type) # Decirle a UI que muestre menú
+                            if self.selected_aircraft.alive():
+                                print(f"Game: Aeronave seleccionada {self.selected_aircraft.label}")
+                                route_type = self.selected_aircraft.route_type
+                                self.ui.display_menu(event.pos, route_type)
+                            else:
+                                 # La aeronave fue eliminada justo antes del clic?
+                                 self.selected_aircraft = None
+                                 print("Game: Clicked on label of killed aircraft?")
                         else:
                             # Si no se hizo clic en ninguna etiqueta, no hacer nada o deseleccionar (ya hecho)
                             print("Game: Clic derecho en espacio vacío.")
@@ -179,8 +188,12 @@ class Game:
             # --- Lógica de Actualización ---
             for acft in self.aircraft_timers[self.exercise_num][:]:
                 if self.elapsed_time >= acft['time']:
-                    self.Aircraft(self.all_sprites, (0, 100, 0),acft['name'],acft['speed'] ,\
+                    new_aircraft = Aircraft(self.all_sprites, (0, 100, 0),acft['name'],acft['speed'] ,\
                                   acft['label'],self.screen,acft['acft_type'])
+                    # Crear la vista de etiqueta asociada
+                    new_label_view = AircraftLabelView(new_aircraft, self.font)
+                    self.label_views.append(new_label_view) # Añadir a la lista de vistas
+                    
                     self.aircraft_timers[self.exercise_num].remove(acft)
             self.all_sprites.update(dt) #
             
@@ -198,8 +211,10 @@ class Game:
                     pygame.draw.aaline(self.screen, route_data["color"], route_data["pixel_points"][i], route_data["pixel_points"][i + 1], 1)
             # Dibujar sprites y sus etiquetas
             self.all_sprites.draw(self.screen) # Dibuja el círculo/imagen base de los sprites
-            for aircraft in self.all_sprites: # Dibujar etiquetas explícitamente
-                aircraft.draw_label(self.screen, self.font) # Llamar al método de dibujo de etiqueta
+            
+            
+            for label_view in self.label_views:
+                label_view.draw() # Llamar al método draw de la vista
 
             self.ui.draw() # Pedir a UI que se dibuje (menú, ventana nivel)
             self.display_time() #
