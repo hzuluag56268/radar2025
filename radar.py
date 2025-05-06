@@ -28,54 +28,27 @@ class Game:
         #self.Aircraft = Aircraft
         #self.exercise_num = input("Enter the exercise number: ")
         #print(f"Exercise number: {self.exercise_num}")
-        self.aircraft_timers = {
-                                0 : [
-                                    {'name':'UMPEX1A', 'time':0, 'speed':30000, 'label':'EFY9070','acft_type':'ATR45'},
-                                    {'name':'DIMIL6A', 'time':0, 'speed':30000, 'label':'JEC5678','acft_type':'A320'},
-                                    {'name':'ESNUT2A', 'time':0, 'speed':30000, 'label':'AVA9321','acft_type':'A320'},
-                                    {'name':'DIMIL_star', 'time':0, 'speed':30000, 'label':'CMP9345','acft_type':'B737'},
-                                    {'name':'ESNUT2B', 'time':1, 'speed':30000, 'label':'AVA9571','acft_type':'A320'}
-                                ], 
-                                1 : [
-                                    {'name':'DIMIL_star', 'time':0, 'speed':200, 'label':'JEC5768','acft_type':'A320'},
-                                    {'name':'TORAT2A', 'time':120, 'speed':250, 'label':'AVA9321','acft_type':'A320'},
-                                    {'name':'DIMIL_star', 'time':240, 'speed':180, 'label':'FAC5078','acft_type':'C208'},
-                                    {'name':'TORAT2A', 'time':300, 'speed':290, 'label':'AVA9571','acft_type':'A320'},
-                                    {'name':'UMPEX1A', 'time':360, 'speed':260, 'label':'EFY9070','acft_type':'ATR45'}
-
-                                ],
-                                2 : [
-                                    {'name':'TORAT2A', 'time':0, 'speed':200, 'label':'EFY9070','acft_type':'ATR45'},
-                                    {'name':'UMPEX1A', 'time':0, 'speed':290, 'label':'JEC5678','acft_type':'A320'},
-                                    {'name':'ESNUT2B', 'time':240, 'speed':180, 'label':'HK5020','acft_type':'PA34'},
-                                    {'name':'TORAT2A', 'time':420, 'speed':250, 'label':'CMP9345','acft_type':'B737'},
-                                    {'name':'DIMIL6A', 'time':480, 'speed':290, 'label':'AVA9571','acft_type':'A320'}
-                                ],
-                                3 : [
-                                    {'name':'TORAT2A', 'time':0, 'speed':180, 'label':'PNC2044','acft_type':'SW4'},
-                                    {'name':'ESNUT2A', 'time':0, 'speed':290, 'label':'AVA9321','acft_type':'A320'},
-                                    {'name':'UMPEX1A', 'time':120, 'speed':260, 'label':'EFY9070','acft_type':'ATR45'},
-                                    {'name':'DIMIL_star', 'time':180, 'speed':260, 'label':'CMP9345','acft_type':'B737'},
-                                    {'name':'ESNUT2B', 'time':240, 'speed':180, 'label':'HK5020','acft_type':'PA34'}
-
-                                ],
-                                4 : [
-                                    {'name':'TORAT2A', 'time':0, 'speed':260, 'label':'AVA9321','acft_type':'A320'},
-                                    {'name':'ESNUT2B', 'time':60, 'speed':260, 'label':'JEC5678','acft_type':'A320'},
-                                    {'name':'TORAT2A', 'time':120, 'speed':200, 'label':'EFY9070','acft_type':'ATR45'}, 
-                                    {'name':'DIMIL6A', 'time':180, 'speed':200, 'label':'JEC5470','acft_type':'A320'},
-                                    {'name':'UMPEX1A', 'time':240, 'speed':200, 'label':'PNC2044','acft_type':'SW4'}
-                                ],
-                                5 : [
-                                    {'name':'UMPEX1A', 'time':0, 'speed':30000, 'label':'AVA9321','acft_type':'A320'},
-                                    #{'name':'ESNUT2B', 'time':60, 'speed':260, 'label':'JEC5678','acft_type':'A320'},
-                                    #{'name':'TORAT2A', 'time':120, 'speed':200, 'label':'EFY9070','acft_type':'ATR45'}, 
-                                    #{'name':'DIMIL6A', 'time':180, 'speed':200, 'label':'JEC5470','acft_type':'A320'},
-                                    #{'name':'UMPEX1A', 'time':240, 'speed':200, 'label':'PNC2044','acft_type':'SW4'}
-                                ]
-                                }
+        self.aircraft_timers = self.load_exercise_data('data/exercises_config.json') # <<<--- Cargar aquí
         self.selected_aircraft = None # Para guardar la A/C seleccionada
         self.label_views = []
+
+    def load_exercise_data(self, file_path): # <<<--- Nueva función para cargar
+        try:
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+            # JSON guarda las claves numéricas como strings, convertirlas si es necesario
+            # o acceder a ellas como strings. En tu caso, `self.aircraft_timers[str(self.exercise_num)]`
+            # si las claves en JSON son "0", "1", etc.
+            # Si quieres claves enteras en el dict:
+            # return {int(k): v for k, v in data.items()}
+            return data # Dejarlas como strings por ahora es más simple
+        except FileNotFoundError:
+            print(f"Error: El archivo de configuración de ejercicios '{file_path}' no fue encontrado.")
+            return {} # Retornar un diccionario vacío para evitar errores
+        except json.JSONDecodeError:
+            print(f"Error: El archivo '{file_path}' contiene JSON inválido.")
+            return {}
+
 
     def display_time(self):
     # Calculate elapsed time in minutes and seconds
@@ -186,15 +159,22 @@ class Game:
             # --- Fin del bucle de eventos ---
 
             # --- Lógica de Actualización ---
-            for acft in self.aircraft_timers[self.exercise_num][:]:
-                if self.elapsed_time >= acft['time']:
-                    new_aircraft = Aircraft(self.all_sprites, (0, 100, 0),acft['name'],acft['speed'] ,\
-                                  acft['label'],self.screen,acft['acft_type'])
-                    # Crear la vista de etiqueta asociada
-                    new_label_view = AircraftLabelView(new_aircraft, self.font)
-                    self.label_views.append(new_label_view) # Añadir a la lista de vistas
-                    
-                    self.aircraft_timers[self.exercise_num].remove(acft)
+            # Acceder a los datos del ejercicio usando la clave como string
+            current_exercise_key = str(self.exercise_num) # <<<--- Clave como string
+            if current_exercise_key in self.aircraft_timers:
+                for acft_data in self.aircraft_timers[current_exercise_key][:]:
+                    if self.elapsed_time >= acft_data['time']:
+                        # Usar ROUTES de settings (o util_funct si se movió allí)
+                        new_aircraft = Aircraft(self.all_sprites, (0, 100, 0), acft_data['name'],
+                                              acft_data['speed'], acft_data['label'], self.screen,
+                                              acft_data['acft_type'])
+                        new_label_view = AircraftLabelView(new_aircraft, self.font)
+                        self.label_views.append(new_label_view)
+                        self.aircraft_timers[current_exercise_key].remove(acft_data)
+            else:
+                # Opcional: manejar el caso donde el número de ejercicio no tiene datos
+                print(f"Advertencia: No hay datos para el ejercicio {self.exercise_num}")
+                
             self.all_sprites.update(dt) #
             
 

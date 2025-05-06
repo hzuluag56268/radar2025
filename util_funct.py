@@ -1,5 +1,7 @@
 from settings import *  
 
+
+
 def latlon_to_pixel(lat, lon):
     x = int((lon - LON_MIN) / (LON_MAX - LON_MIN) * SCREEN_WIDTH)
     y = int((LAT_MAX - lat) / (LAT_MAX - LAT_MIN) * SCREEN_HEIGHT)
@@ -7,10 +9,12 @@ def latlon_to_pixel(lat, lon):
 
 geod = Geod(ellps="WGS84")
 
-
-
-
 for route_name, route_data in ROUTES.items():
+    # Convertir listas de coordenadas de JSON de nuevo a tuplas si es necesario por pyproj
+    # (pyproj usualmente maneja bien las listas para coordenadas, pero es bueno estar atento)
+    coordinates_as_tuples = [tuple(coord) for coord in route_data["coordinates"]]
+    route_data["coordinates"] = coordinates_as_tuples # Actualizar con tuplas si es necesario
+
     pixel_points = [latlon_to_pixel(lat, lon) for lat, lon in route_data["coordinates"]]
     distances = [
         geod.inv(wp1[1], wp1[0], wp2[1], wp2[0])[2] / 1852
@@ -18,17 +22,8 @@ for route_name, route_data in ROUTES.items():
     ]
     ROUTES[route_name].update({"pixel_points": pixel_points, "distances": distances})
 
+
 def pixel_distance_to_nm(pos1, pos2):
-    """
-    Calculate the distance in nautical miles between two positions in pixels.
-
-    Args:
-        pos1 (tuple): (x, y) coordinates of the first aircraft in pixels.
-        pos2 (tuple): (x, y) coordinates of the second aircraft in pixels.
-
-    Returns:
-        float: The distance between the two positions in nautical miles.
-    """
     # Convert pixels back to lat/lon
     lon1 = LON_MIN + (pos1[0] / SCREEN_WIDTH) * (LON_MAX - LON_MIN)
     lat1 = LAT_MAX - (pos1[1] / SCREEN_HEIGHT) * (LAT_MAX - LAT_MIN)
