@@ -1,6 +1,35 @@
+#Parte 3: Modificar AircraftLabelView
 # views.py
 from settings import *
 
+class AircraftSprite(pygame.sprite.Sprite):
+    def __init__(self, aircraft_model, color, screen):
+        super().__init__()
+        self.model = aircraft_model
+        self.color = color # Podría venir del modelo o ser específico de la vista
+        self.screen = screen # Necesario para el sprite si no se pasa al grupo de sprites
+
+        self.radius = 6 # Radio visual del círculo
+
+        # La imagen se crea una vez, pero su posición (rect) se actualiza
+        self.image = pygame.Surface((self.radius * 2, self.radius * 2), pygame.SRCALPHA)
+        pygame.draw.circle(self.image, self.color, (self.radius, self.radius), self.radius)
+
+        # El rect se actualiza en update() basado en model.moving_point
+        self.rect = self.image.get_rect(center=self.model.moving_point)
+
+    def update(self):
+        """Actualiza la posición del sprite basada en el modelo."""
+        if self.model.alive:
+            self.rect.center = self.model.moving_point
+        else:
+            self.kill() # Elimina este sprite del grupo si el modelo ya no está vivo
+
+    # No necesita un método draw() explícito si se añade a un pygame.sprite.Group
+    # y se usa group.draw(screen). El grupo usa self.image y self.rect.
+
+
+#Parte 3: Modificar AircraftLabelView
 class AircraftLabelView:
     """
     Clase responsable de dibujar la etiqueta de una aeronave
