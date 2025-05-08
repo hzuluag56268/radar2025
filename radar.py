@@ -55,7 +55,7 @@ class Game:
 
 
     def display_time(self):
-    # Calculate elapsed time in minutes and seconds
+    # Calculate elapsed, time in minutes and seconds
         total_seconds = int(self.elapsed_time)
         minutes = total_seconds // 60
         seconds = total_seconds % 60
