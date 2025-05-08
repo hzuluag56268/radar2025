@@ -24,12 +24,12 @@ class Game:
         self.elapsed_time = 0
         self.ui = ui()
         self.level_str = ""
-        self.exercise_num_str = "1"
+        self.exercise_num_str = "2"
         #self.Aircraft = Aircraft
         #self.exercise_num_str = input("Enter the exercise number: ")
         #print(f"Exercise number: {self.exercise_num_str}")
         self.routes_config = ROUTES 
-        self.aircraft_timers = self.load_exercise_data('data/exercises_config.json') # <<<--- Cargar aquí
+        self.aircraft_creation_data = self.load_exercise_data('data/exercises_config.json') # <<<--- Cargar aquí
         self.selected_aircraft_model  = None # Para guardar la A/C seleccionada
         self.label_views = []
 
@@ -66,6 +66,23 @@ class Game:
         # Position the text on the screen
         self.screen.blit(time_text, (10, 10))  # Adjust position as needed
     
+    def handle_collision_visualization(self):
+        """Detecta conflictos y los dibuja en la pantalla."""
+        # Obtener la lista de sprites activos. self.all_sprites ya debería
+        # auto-limpiarse de sprites cuyos modelos no están 'alive'.
+        active_sprites = list(self.all_sprites) # Convertir el grupo a lista para la función
+
+        detected_conflicts = check_separations(active_sprites)
+
+        for conflict in detected_conflicts:
+            sprite1 = conflict['sprite1']
+            sprite2 = conflict['sprite2']
+            severity = conflict['severity']
+
+            color = (255, 0, 0) if severity == "critical" else (255, 255, 0) # Rojo para crítico, Amarillo para advertencia
+
+            # Dibujar la línea entre los centros de los sprites
+            pygame.draw.aaline(self.screen, color, sprite1.rect.center, sprite2.rect.center, 2) # Línea un poco más gruesa
     # En radar.py, clase Game, método run
     def run(self): #
         start_time = time.time() #
@@ -77,87 +94,107 @@ class Game:
             self.aircraft_models = [model for model in self.aircraft_models if model.alive]
             self.label_views = [lv for lv in self.label_views if lv.aircraft_model.alive] # AircraftLabelView necesitará ref. a model
 
-
-            # mouse_pos = pygame.mouse.get_pos() # Obtener si es necesario
+            # Obtener estado del mouse una vez por frame para eficiencia
+            mouse_pos_tuple = pygame.mouse.get_pos()
+            mouse_buttons_pressed = pygame.mouse.get_pressed() # (izquierdo, medio, derecho)
             
-            for event in pygame.event.get(): #
-                if event.type == pygame.QUIT: #
-                    self.running = False #
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
 
-                # --- Manejo de Input de Teclado (Pasar a UI si es necesario) ---
-                if event.type == pygame.KEYDOWN: #
-                    if self.ui.level_window_active: # Verificar si la ventana de nivel está activa
-                        enter_pressed = self.ui.handle_level_input_keypress(event) # Pasar evento a UI
-                        if enter_pressed: # Si UI indica que se presionó Enter
-                            entered_level = self.ui.hide_level_input() # Ocultar y obtener valor
-                            if self.selected_aircraft_model: # Aplicar al seleccionado
-                                # Pasar la bandera de continuación desde UI a Aircraft
-                                self.selected_aircraft_model.set_continue_descent_climb_flag(
-                                    self.ui.is_continue_descent
-                                )
-                                self.selected_aircraft_model.set_desired_altitude(entered_level)
-                            # Deseleccionar después de la acción de nivel
-                            self.selected_aircraft_model = None
+                # 1. PERMITIR A LAS ETIQUETAS MANEJAR EVENTOS DE ARRASTRE PRIMERO
+                # Iterar sobre todas las vistas de etiquetas activas
+                # Es importante manejar MOUSEBUTTONDOWN, MOUSEBUTTONUP, y MOUSEMOTION
+                # para una lógica de arrastre completa.
 
-                # --- Manejo de Clics del Mouse ---
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 3: # Clic derecho
-                        self.ui.hide_menu()
-                        self.ui.hide_level_input()
-                        newly_selected_model = None
-                        
-                        # Prioridad al clic en etiqueta si existe
-                        for label_view in self.label_views:
-                            if label_view.is_clicked(event.pos):
-                                newly_selected_model = label_view.aircraft_model # Asumiendo que label_view tiene ref al model
-                                break
-                        
-                        # Si no se hizo clic en etiqueta, comprobar clic en sprite de aeronave
-                        if not newly_selected_model:
-                            for sprite in self.all_sprites: # self.all_sprites contiene AircraftSprite
-                                if sprite.rect.collidepoint(event.pos) and hasattr(sprite, 'model'):
-                                    newly_selected_model = sprite.model
+                label_event_consumed = False # Bandera para saber si una etiqueta ya manejó el evento
+
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1: # Clic izquierdo presionado
+                    for lv in self.label_views:
+                        if lv.aircraft_model.alive: # Solo procesar para etiquetas de aeronaves activas
+                            if lv.handle_input_for_drag(event, mouse_pos_tuple, mouse_buttons_pressed):
+                                label_event_consumed = True
+                                # Si una etiqueta inicia el arrastre, usualmente no queremos que este clic
+                                # también seleccione la aeronave o abra un menú inmediatamente.
+                                break # Salir del bucle de etiquetas; una ya está siendo arrastrada.
+                
+                elif event.type == pygame.MOUSEMOTION:
+                    # Solo necesitamos pasar el evento de movimiento a la etiqueta que YA está siendo arrastrada.
+                    for lv in self.label_views:
+                        if lv.dragging_label: # Si esta etiqueta específica está en modo arrastre
+                            if lv.handle_input_for_drag(event, mouse_pos_tuple, mouse_buttons_pressed):
+                                label_event_consumed = True
+                            break # Solo una etiqueta puede estar siendo arrastrada a la vez.
+                
+                elif event.type == pygame.MOUSEBUTTONUP and event.button == 1: # Clic izquierdo liberado
+                    for lv in self.label_views:
+                        # Si una etiqueta estaba siendo arrastrada, este evento es para ella.
+                        if lv.dragging_label: 
+                            if lv.handle_input_for_drag(event, mouse_pos_tuple, mouse_buttons_pressed):
+                                label_event_consumed = True
+                            # No rompemos el bucle aquí necesariamente, aunque usualmente solo una se arrastra.
+                            # El estado dragging_label se reseteará dentro de handle_input_for_drag.
+                            break # Asumimos que el evento de soltar es para la etiqueta que se estaba arrastrando.
+
+                # 2. SI EL EVENTO NO FUE CONSUMIDO POR EL ARRASTRE DE UNA ETIQUETA, PROCESAR OTROS EVENTOS
+                if not label_event_consumed:
+                    if event.type == pygame.KEYDOWN:
+                        if self.ui.level_window_active:
+                            enter_pressed = self.ui.handle_level_input_keypress(event)
+                            if enter_pressed:
+                                entered_level = self.ui.hide_level_input()
+                                if self.selected_aircraft_model:
+                                    self.selected_aircraft_model.set_continue_descent_climb_flag(
+                                        self.ui.is_continue_descent
+                                    )
+                                    self.selected_aircraft_model.set_desired_altitude(entered_level)
+                                self.selected_aircraft_model = None
+
+                    elif event.type == pygame.MOUSEBUTTONDOWN: # Otros clics del ratón
+                        if event.button == 3: # Clic Derecho: Seleccionar Aeronave / Mostrar Menú
+                            self.ui.hide_menu()
+                            self.ui.hide_level_input()
+                            newly_selected_model = None
+                            
+                            # Prioridad al clic en etiqueta para selección (si la etiqueta no está siendo arrastrada)
+                            for label_view in self.label_views:
+                                if label_view.is_clicked(mouse_pos_tuple) and label_view.aircraft_model.alive:
+                                    newly_selected_model = label_view.aircraft_model
                                     break
-                        
-                        self.selected_aircraft_model = newly_selected_model
-                        
-                        if self.selected_aircraft_model and self.selected_aircraft_model.alive:
-                            print(f"Game: Modelo de aeronave seleccionado {self.selected_aircraft_model.label}")
-                            route_type = self.selected_aircraft_model.route_type
-                            self.ui.display_menu(event.pos, route_type) # display_menu podría necesitar el tipo o el modelo
-                        else:
-                            self.selected_aircraft_model = None # Deseleccionar si no es válido
-                            # print("Game: Clic derecho en espacio vacío o aeronave no viva.")
+                            
+                            if not newly_selected_model: # Si no, verificar clic en sprite de aeronave
+                                for sprite_candidate in self.all_sprites: # self.all_sprites son AircraftSprite
+                                    if sprite_candidate.rect.collidepoint(mouse_pos_tuple) and sprite_candidate.model.alive:
+                                        newly_selected_model = sprite_candidate.model
+                                        break
+                            
+                            self.selected_aircraft_model = newly_selected_model
+                            
+                            if self.selected_aircraft_model: # Ya se verificó .alive
+                                print(f"Game: Modelo de aeronave seleccionado {self.selected_aircraft_model.label}")
+                                self.ui.display_menu(mouse_pos_tuple, self.selected_aircraft_model.route_type)
+                            else:
+                                self.selected_aircraft_model = None # Asegurar deselección
 
-                    elif event.button == 1: # Clic izquierdo
-                        if self.ui.show_menu:
-                            action = self.ui.process_menu_click(event.pos)
-                            if action:
-                                self.ui.hide_menu()
-                                if action == "close_menu":
-                                    self.selected_aircraft_model = None
-                                elif self.selected_aircraft_model:
-                                    print(f"Game: Ejecutando acción '{action}' para {self.selected_aircraft_model.label}")
-                                    if action == "Join Holding Pattern":
-                                        self.selected_aircraft_model.set_pending_holding(True)
-                                    elif action == "Finish Holding Pattern":
-                                        self.selected_aircraft_model.set_finish_holding(True)
-                                    elif action == "Stop descent at" or action == "Stop climb at":
-                                        self.ui.display_level_input(event.pos) # UI se encarga de mostrar
-                                    elif action == "Continue descent to" or action == "continue climb to ":
-                                        self.ui.display_level_input(event.pos)
-                                    elif action == "disregard":
+                        elif event.button == 1: # Clic Izquierdo: Procesar Menú
+                            if self.ui.show_menu:
+                                action = self.ui.process_menu_click(mouse_pos_tuple)
+                                if action:
+                                    self.ui.hide_menu()
+                                    if action == "close_menu":
                                         self.selected_aircraft_model = None
-                                    
-                                    if action not in ["Stop descent at", "Stop climb at", "Continue descent to", "continue climb to "]:
+                                    elif self.selected_aircraft_model:
+                                        # ... (lógica para acciones del menú como la tenías)
+                                        if action == "Join Holding Pattern":
+                                            self.selected_aircraft_model.set_pending_holding(True)
+                                        # ... (etc.)
+                                        if action not in ["Stop descent at", "Stop climb at", "Continue descent to", "continue climb to "]:
+                                            self.selected_aircraft_model = None
+                                    else: # Clic en menú pero no hay aeronave seleccionada (raro, pero por si acaso)
                                         self.selected_aircraft_model = None
-                                else: # Clic en menú sin modelo seleccionado
-                                    self.selected_aircraft_model = None
-                        # else: # Clic izquierdo fuera del menú, podría ser para arrastrar etiquetas
-                        #     for lv in self.label_views:
-                        #         lv.handle_drag_input(event, pygame.mouse.get_pos(), pygame.mouse.get_pressed())
+            
+            # --- FIN DEL BUCLE DE EVENTOS ---
 
-            # --- Fin del bucle de eventos ---
 
             # --- Lógica de Actualización ---
             # Acceder a los datos del ejercicio usando la clave como string
@@ -229,15 +266,11 @@ class Game:
             self.display_time() #
             # Detección y dibujo de colisiones (ver Parte 3)
             self.handle_collision_visualization() # Nuevo método
-            collision_check(self.all_sprites, self.screen) #
+            
             pygame.display.update() #
 
         pygame.quit() #
 
-def handle_collision_visualization(self):
-        # Esta función llamará a la función de utilidad (que solo detecta)
-        # y luego dibujará aquí. (Se detalla en la Parte 3)
-        pass
 
 if __name__ == '__main__':
     #pygame.init()  # Initialize Pygame
@@ -249,6 +282,6 @@ if __name__ == '__main__':
 
     # Pass the exercise number to the Game instance
     radar = Game()
-    radar.exercise_num_str = "0"  # Set exercise number
+    radar.exercise_num_str = "1"  # Set exercise number
     radar.run()
 
