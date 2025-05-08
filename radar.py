@@ -1,7 +1,7 @@
 # check if collision_check(self.all_sprites, self.screen)
 from settings import *
 from util_funct import *
-from aircraft import *
+#from aircraft import *
 from views import *
 from models import *
 from ui import *
@@ -25,7 +25,6 @@ class Game:
         self.ui = ui()
         self.level_str = ""
         self.exercise_num_str = "2"
-        #self.Aircraft = Aircraft
         #self.exercise_num_str = input("Enter the exercise number: ")
         #print(f"Exercise number: {self.exercise_num_str}")
         self.routes_config = ROUTES 
