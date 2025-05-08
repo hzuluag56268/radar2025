@@ -1,5 +1,7 @@
 from settings import *  
 
+
+
 def latlon_to_pixel(lat, lon):
     x = int((lon - LON_MIN) / (LON_MAX - LON_MIN) * SCREEN_WIDTH)
     y = int((LAT_MAX - lat) / (LAT_MAX - LAT_MIN) * SCREEN_HEIGHT)
@@ -7,10 +9,12 @@ def latlon_to_pixel(lat, lon):
 
 geod = Geod(ellps="WGS84")
 
-
-
-
 for route_name, route_data in ROUTES.items():
+    # Convertir listas de coordenadas de JSON de nuevo a tuplas si es necesario por pyproj
+    # (pyproj usualmente maneja bien las listas para coordenadas, pero es bueno estar atento)
+    coordinates_as_tuples = [tuple(coord) for coord in route_data["coordinates"]]
+    route_data["coordinates"] = coordinates_as_tuples # Actualizar con tuplas si es necesario
+
     pixel_points = [latlon_to_pixel(lat, lon) for lat, lon in route_data["coordinates"]]
     distances = [
         geod.inv(wp1[1], wp1[0], wp2[1], wp2[0])[2] / 1852
@@ -18,17 +22,8 @@ for route_name, route_data in ROUTES.items():
     ]
     ROUTES[route_name].update({"pixel_points": pixel_points, "distances": distances})
 
+
 def pixel_distance_to_nm(pos1, pos2):
-    """
-    Calculate the distance in nautical miles between two positions in pixels.
-
-    Args:
-        pos1 (tuple): (x, y) coordinates of the first aircraft in pixels.
-        pos2 (tuple): (x, y) coordinates of the second aircraft in pixels.
-
-    Returns:
-        float: The distance between the two positions in nautical miles.
-    """
     # Convert pixels back to lat/lon
     lon1 = LON_MIN + (pos1[0] / SCREEN_WIDTH) * (LON_MAX - LON_MIN)
     lat1 = LAT_MAX - (pos1[1] / SCREEN_HEIGHT) * (LAT_MAX - LAT_MIN)
@@ -44,41 +39,37 @@ def pixel_distance_to_nm(pos1, pos2):
     return distance_nm
 
 
-    screen = screen
-    all_sprites = sprite_group
-    for acft1 in all_sprites:
-        for acft2 in all_sprites:
-            if acft1 != acft2:
-                if abs(acft1.altitude - acft2.altitude) < 1000:
-                    separation = pixel_distance_to_nm(acft1.rect.center, acft2.rect.center)
-                    if separation < 10:
-                        if separation < 5:
-                            pygame.draw.aaline(screen, (255, 0, 0), acft1.rect.center, acft2.rect.center, 1)
-                        else:
-                            pygame.draw.aaline(screen, (255, 255, 0), acft1.rect.center, acft2.rect.center, 1)
-                        
-                        print(f"Separation: {separation:.2f} nautical miles")
+def check_separations(aircraft_sprites_list): # Recibe la lista de AircraftSprite
+    conflicts = []
+    # Convertir a lista si es un grupo, o asegurar que sea una lista de sprites
+    # que tengan 'model' y 'rect'
 
+    for i in range(len(aircraft_sprites_list)):
+        for j in range(i + 1, len(aircraft_sprites_list)):
+            acft_sprite1 = aircraft_sprites_list[i]
+            acft_sprite2 = aircraft_sprites_list[j]
 
-def collision_check(sprite_group, screen):
-    """
-    Check for potential conflicts between aircraft and visualize separations on the radar.
-
-    Args:
-        sprite_group (pygame.sprite.Group): Group containing all aircraft sprites.
-        screen (pygame.Surface): Pygame surface to draw conflict lines.
-    """
-    all_sprites = list(sprite_group)  # Convert group to list for indexed iteration
-    for i, acft1 in enumerate(all_sprites):
-        for j, acft2 in enumerate(all_sprites):
-            if j <= i:  # Avoid duplicate comparisons
+            # Acceder al modelo a través del sprite para obtener la altitud
+            # y asegurar que ambos modelos estén vivos
+            if not acft_sprite1.model.alive or not acft_sprite2.model.alive:
                 continue
-            
-            # Altitude and horizontal separation check
-            if abs(acft1.altitude - acft2.altitude) < 1000:
-                separation = pixel_distance_to_nm(acft1.rect.center, acft2.rect.center)
-                if separation < 10:
-                    # Red for critical separation, yellow for warning
-                    color = (255, 0, 0) if separation < 5 else (255, 255, 0)
-                    pygame.draw.aaline(screen, color, acft1.rect.center, acft2.rect.center, 1)
-                    print(f"Separation between {acft1.label} and {acft2.label}: {separation:.2f} NM")
+
+            alt1 = acft_sprite1.model.altitude
+            alt2 = acft_sprite2.model.altitude
+
+            if abs(alt1 - alt2) < 1000: # Separación vertical menor a 1000ft
+                # Usar los rect.center de los sprites para la distancia en píxeles
+                separation_nm = pixel_distance_to_nm(acft_sprite1.rect.center, acft_sprite2.rect.center)
+
+                if separation_nm < 10:
+                    severity = "critical" if separation_nm < 5 else "warning"
+                    conflicts.append({
+                        'sprite1': acft_sprite1,
+                        'sprite2': acft_sprite2,
+                        'severity': severity,
+                        'separation_nm': separation_nm
+                    })
+                    # print(f"Separation between {acft_sprite1.model.label} and {acft_sprite2.model.label}: {separation_nm:.2f} NM - {severity.upper()}")
+    return conflicts
+
+# La función collision_check original que dibujaba directamente puede ser eliminada o comentada.

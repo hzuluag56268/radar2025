@@ -1,0 +1,44 @@
+{
+    "0": [
+        {"name": "UMPEX1A", "time": 0, "speed": 30000, "label": "EFY9070", "acft_type": "ATR45"},
+        {"name": "DIMIL6A", "time": 0, "speed": 30000, "label": "JEC5678", "acft_type": "A320"},
+        {"name": "ESNUT2A", "time": 0, "speed": 30000, "label": "AVA9321", "acft_type": "A320"},
+        {"name": "DIMIL_star", "time": 0, "speed": 30000, "label": "CMP9345", "acft_type": "B737"},
+        {"name": "ESNUT2B", "time": 1, "speed": 30000, "label": "AVA9571", "acft_type": "A320"}
+    ],
+    "1": [
+        {"name": "DIMIL_star", "time": 0, "speed": 200, "label": "JEC5768", "acft_type": "A320"},
+        {"name": "TORAT2A", "time": 120, "speed": 250, "label": "AVA9321", "acft_type": "A320"},
+        {"name": "DIMIL_star", "time": 240, "speed": 180, "label": "FAC5078", "acft_type": "C208"},
+        {"name": "TORAT2A", "time": 300, "speed": 290, "label": "AVA9571", "acft_type": "A320"},
+        {"name": "UMPEX1A", "time": 360, "speed": 260, "label": "EFY9070", "acft_type": "ATR45"}
+    ],
+    "2": [
+        {"name": "TORAT2A", "time": 0, "speed": 200, "label": "EFY9070", "acft_type": "ATR45"},
+        {"name": "UMPEX1A", "time": 0, "speed": 290, "label": "JEC5678", "acft_type": "A320"},
+        {"name": "ESNUT2B", "time": 240, "speed": 180, "label": "HK5020", "acft_type": "PA34"},
+        {"name": "TORAT2A", "time": 420, "speed": 250, "label": "CMP9345", "acft_type": "B737"},
+        {"name": "DIMIL6A", "time": 480, "speed": 290, "label": "AVA9571", "acft_type": "A320"}
+    ],
+    "3": [
+        {"name": "TORAT2A", "time": 0, "speed": 180, "label": "PNC2044", "acft_type": "SW4"},
+        {"name": "ESNUT2A", "time": 0, "speed": 290, "label": "AVA9321", "acft_type": "A320"},
+        {"name": "UMPEX1A", "time": 120, "speed": 260, "label": "EFY9070", "acft_type": "ATR45"},
+        {"name": "DIMIL_star", "time": 180, "speed": 260, "label": "CMP9345", "acft_type": "B737"},
+        {"name": "ESNUT2B", "time": 240, "speed": 180, "label": "HK5020", "acft_type": "PA34"}
+    ],
+    "4": [
+        {"name": "TORAT2A", "time": 0, "speed": 260, "label": "AVA9321", "acft_type": "A320"},
+        {"name": "ESNUT2B", "time": 60, "speed": 260, "label": "JEC5678", "acft_type": "A320"},
+        {"name": "TORAT2A", "time": 120, "speed": 200, "label": "EFY9070", "acft_type": "ATR45"},
+        {"name": "DIMIL6A", "time": 180, "speed": 200, "label": "JEC5470", "acft_type": "A320"},
+        {"name": "UMPEX1A", "time": 240, "speed": 200, "label": "PNC2044", "acft_type": "SW4"}
+    ],
+    "5": [
+        {"name": "UMPEX1A", "time": 0, "speed": 30000, "label": "AVA9321", "acft_type": "A320"},
+        {"name": "ESNUT2B", "time": 60, "speed": 260, "label": "JEC5678", "acft_type": "A320"},
+        {"name": "TORAT2A", "time": 120, "speed": 200, "label": "EFY9070", "acft_type": "ATR45"},
+        {"name": "DIMIL6A", "time": 180, "speed": 200, "label": "JEC5470", "acft_type": "A320"},
+        {"name": "UMPEX1A", "time": 240, "speed": 200, "label": "PNC2044", "acft_type": "SW4"}
+    ]
+}
