@@ -230,8 +230,23 @@ class Game:
                                         # ... (lógica para acciones del menú como la tenías)
                                         if action == "Join Holding Pattern":
                                             self.selected_aircraft_model.set_pending_holding(True)
-                                        # ... (etc.)
-                                        if action not in ["Stop descent at", "Stop climb at", "Continue descent to", "continue climb to "]:
+                                        
+                                        elif action == "Finish Holding Pattern":
+                                            self.selected_aircraft.set_finish_holding(True)
+                                        elif action == "Stop descent at" or action == "Stop climb at":
+                                            # Decirle a UI que muestre la ventana de nivel
+                                            self.ui.display_level_input(event.pos)
+                                            # No deseleccionar aún, esperar input de nivel
+                                        elif action == "Continue descent to" or action == "continue climb to":
+                                            # Decirle a UI que muestre la ventana de nivel
+                                            self.ui.display_level_input(event.pos)
+                                            # No deseleccionar aún
+                                        elif action == "disregard":
+                                            print("Game: Acción 'disregard' seleccionada.")
+                                            self.selected_aircraft = None # Deseleccionar
+
+                                            
+                                        if action not in ["Stop descent at", "Stop climb at", "Continue descent to", "continue climb to"]:
                                             self.selected_aircraft_model = None
                                     else: # Clic en menú pero no hay aeronave seleccionada (raro, pero por si acaso)
                                         self.selected_aircraft_model = None
