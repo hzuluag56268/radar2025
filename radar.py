@@ -36,6 +36,49 @@ class Game:
         self.all_sprites = pygame.sprite.Group() # Para AircraftSprite
         self.aircraft_models = [] # Para AircraftModel
 
+        self.action_handlers = {
+            "Join Holding Pattern": self._handle_join_holding,
+            "Finish Holding Pattern": self._handle_finish_holding,
+            "Stop descent at": self._handle_altitude_stop,
+            "Continue descent to": self._handle_altitude_continue,
+            "Stop climb at": self._handle_altitude_stop, # Puede ser el mismo handler
+            "continue climb to": self._handle_altitude_continue, # Puede ser el mismo handler
+            "disregard": self._handle_disregard_action,
+            "close_menu": self._handle_close_menu_action
+            # Añade más acciones según sea necesario
+        }
+
+
+     # En Game, define estos métodos de manejo:
+    
+    
+    def _handle_join_holding(self):
+        if self.selected_aircraft_model:
+            self.selected_aircraft_model.set_pending_holding(True)
+            self.selected_aircraft_model = None # Deseleccionar después de la acción
+
+    def _handle_finish_holding(self):
+        if self.selected_aircraft_model:
+            self.selected_aircraft_model.set_finish_holding(True) # Asumiendo que existe en el modelo
+            self.selected_aircraft_model = None
+
+    def _handle_altitude_stop(self):
+        if self.selected_aircraft_model:
+            self.ui.is_continue_descent = False # Informar a UI que NO es continuación
+            self.ui.display_level_input(pygame.mouse.get_pos()) # Usar la posición actual del ratón o una guardada
+
+    def _handle_altitude_continue(self):
+        if self.selected_aircraft_model:
+            self.ui.is_continue_descent = True # Informar a UI que SÍ es continuación
+            self.ui.display_level_input(pygame.mouse.get_pos())
+
+    def _handle_disregard_action(self):
+        self.selected_aircraft_model = None
+
+    def _handle_close_menu_action(self):
+        self.selected_aircraft_model = None
+
+
     def load_exercise_data(self, file_path): # <<<--- Nueva función para cargar
         try:
             with open(file_path, 'r') as f:
