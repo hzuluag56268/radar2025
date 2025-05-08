@@ -18,12 +18,14 @@ class ui():
         self.active_aircraft_type = None # Guardar tipo de ruta (star/sid) para opciones de menú
         self.is_star = None 
         self.star_options =  ["Join Holding Pattern", "Finish Holding Pattern", "Stop descent at","Continue descent to", "disregard"]
-        self.sid_options = ["Stop climb at", "continue climb to ", "disregard"]
+        self.sid_options = ["Stop climb at", "continue climb to", "disregard"]
         
 
         self.menu_options =  None
         self.rows = None
 
+        
+    #
     # En ui.py, clase ui
     def process_menu_click(self, pos):
         """ Procesa un clic en el menú y devuelve la acción seleccionada, o None. """
@@ -68,7 +70,6 @@ class ui():
             text_surf2 = self.font.render(f"level: {self.string_level}", True, (0, 255, 0))        
             text_rect2 = text_surf2.get_rect(center = (rect2.centerx,rect2.centery))
             self.display_surface.blit(text_surf2, text_rect2)
-        
     
     def display_menu(self, position, aircraft_route_type):
         """ Muestra el menú en la posición dada, adaptado al tipo de ruta. """
