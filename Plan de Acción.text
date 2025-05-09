@@ -1,0 +1,74 @@
+Plan de Acción Detallado:
+
+Nos enfocaremos en implementar esto progresivamente:
+
+Fase 1: Estructura Básica y Fichas No Interactivas
+
+Definir FlightStripView (en ui.py o un nuevo panel_ui.py):
+
+__init__(self, data, strip_type, font): data será un AircraftModel o un diccionario de aircraft_creation_data. strip_type será "STAR" o "SID".
+Tendrá un atributo self.rect que SidePanel asignará.
+Método draw(self, surface): Por ahora, solo mostrará la información básica (indicativo, tipo, altitud, velocidad) basada en si data es un modelo o un diccionario. Para los SIDs aún no activos (diccionario), podría mostrar "Programado" o el nombre de la ruta.
+Método is_clicked(self, pos): Devuelve True si pos está dentro de self.rect. (Lo usaremos más tarde).
+Definir SidePanel (en el mismo archivo que FlightStripView):
+
+__init__(self, screen, font, game_ref): game_ref será una referencia a la instancia de Game para acceder a elapsed_time y aircraft_creation_data, y más tarde para llamar a una función que active SIDs.
+Almacenará self.arrival_strips = [] y self.departure_strips = [].
+Definirá los pygame.Rect para la zona de llegadas y salidas.
+Método update(self, active_models, pending_ac_data, elapsed_time):
+Poblará self.arrival_strips con instancias de FlightStripView para aeronaves STAR de active_models.
+Poblará self.departure_strips:
+Primero, con aeronaves SID de active_models.
+Luego, con aeronaves SID de pending_ac_data (aquellas cuyo data['time'] > elapsed_time).
+Método draw(self):
+Dibujará el fondo del panel y la línea divisoria.
+Iterará sobre self.arrival_strips y self.departure_strips, calculará el rect para cada ficha (distribuyéndolas verticalmente) y llamará a strip.draw(self.screen).
+Integración con Game (radar.py):
+
+En Game.__init__: Crear self.side_panel = SidePanel(...).
+En Game.run():
+Llamar a self.side_panel.update(...) pasando self.aircraft_models, los datos de aeronaves pendientes (SIDs que aún no han cumplido su time), y self.elapsed_time.
+Llamar a self.side_panel.draw().
+Fase 2: Implementación de la Interactividad para SIDs
+
+Mejorar FlightStripView para SIDs:
+
+En draw(): Si es un SID programado (no activo), calcular y mostrar la cuenta regresiva "Sale en: MM:SS" usando data['time'] y elapsed_time (obtenido de game_ref o pasado en update).
+Añadir un método handle_click(self, game_ref):
+Si el strip es un SID programado, llamará a una nueva función en game_ref (ej. game_ref.request_early_departure(self.data['label'])).
+Mejorar SidePanel:
+
+Método handle_panel_input(self, event, mouse_pos):
+Si event.type == pygame.MOUSEBUTTONDOWN:
+Iterar sobre self.departure_strips. Si strip.is_clicked(mouse_pos):
+Llamar a strip.handle_click(self.game_ref).
+Modificaciones en Game:
+
+Pasar self (la instancia de Game) a SidePanel como game_ref.
+Añadir la función request_early_departure(self, aircraft_label):
+Buscará en self.aircraft_creation_data[self.exercise_num_str] la entrada con label == aircraft_label.
+Modificará su ['time'] a self.elapsed_time actual. Esto hará que la lógica de creación de aeronaves existente en Game.run() la recoja y la cree casi de inmediato.
+Asegurarse de que el bucle de eventos en Game.run() llame a self.side_panel.handle_panel_input(event, mouse_pos) para los clics que no sean consumidos por otros elementos UI (como el menú contextual).
+Información en las Fichas (Propuesta Inicial para Fase 1 y 2):
+
+Para STARs (activas) y SIDs (activas):
+
+Indicativo (model.label)
+Tipo Acft (model.acft_type)
+Alt: XXX (model.altitude formateado)
+Vel: YYY (model.current_speed formateado)
+Ruta: ZZZZZ (model.route_name)
+Para SIDs (programadas, antes del clic):
+
+Indicativo (data['label'])
+Tipo Acft (data['acft_type'])
+Ruta: ZZZZZ (data['name'])
+"Sale en: MM:SS"
+(Opcional) "AUTORIZAR" (como un botón o texto destacado)
+Para SIDs (después del clic, antes de estar completamente activa - si queremos un estado intermedio):
+
+Indicativo
+Tipo Acft
+Ruta
+"AUTORIZADO"
+(Podría cambiar de color brevemente)
