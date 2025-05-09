@@ -15,7 +15,7 @@ pygame.init()
 class Game:
     def __init__(self):
         print('ejercicio 0')
-        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH + PANEL_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption("Radar Simulation")
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 24)  # Added font for aircraft labels
@@ -35,8 +35,8 @@ class Game:
         self.all_sprites = pygame.sprite.Group() # Para AircraftSprite
         self.aircraft_models = [] # Para AircraftModel
 
-
-
+        PanelView()
+    
 
     def load_exercise_data(self, file_path): # <<<--- Nueva función para cargar
         try:
