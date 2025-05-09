@@ -25,12 +25,9 @@ class AircraftSprite(pygame.sprite.Sprite):
         else:
             self.kill() # Elimina este sprite del grupo si el modelo ya no está vivo
 
-    # No necesita un método draw() explícito si se añade a un pygame.sprite.Group
-    # y se usa group.draw(screen). El grupo usa self.image y self.rect.
-
-
 #Parte 3: Modificar AircraftLabelView
 class AircraftLabelView:
+
     """
     Clase responsable de dibujar la etiqueta de una aeronave
     y manejar la interacción de arrastre con ella.
@@ -42,11 +39,6 @@ class AircraftLabelView:
         self.screen = screen # Necesaria para dibujar
 
         self.label_rect = pygame.Rect(0, 0, 0, 0) # Se calculará en draw
-        # Offset inicial por defecto respecto al centro de la aeronave
-        # self.label_offset = pygame.math.Vector2(15, -20) # Usar Vector2 para facilidad
-        # Posición actual de la esquina superior izquierda de la etiqueta
-        # self.current_label_topleft = pygame.math.Vector2(0, 0) 
-        
         # Para mantener la posición relativa durante el arrastre y entre updates
         # Se calcula respecto al centro del modelo (moving_point)
         self.relative_offset_from_aircraft = pygame.math.Vector2(15, -20)
@@ -68,8 +60,8 @@ class AircraftLabelView:
 
         label_lines_text = [
             f"{model_data['label']}",
-            f"{model_data['altitude']/100:.0f}00", # FL
-            f"{model_data['current_speed']:.0f}",   # Speed
+            f"{model_data['altitude']/100:.0f}00 ft", # FL
+            f"{model_data['current_speed']:.0f}kts",   # Speed
             f"{model_data['acft_type']}"
         ]
         
@@ -157,3 +149,6 @@ class AircraftLabelView:
     def is_clicked(self, pos_tuple):
         """Verifica si la posición (tupla) colisiona con el rectángulo de esta etiqueta."""
         return self.label_rect.collidepoint(pos_tuple)
+    
+
+

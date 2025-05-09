@@ -4,7 +4,7 @@ from pyproj import Geod
 import json 
 
 # settings.py
-
+PANEL_WIDTH = 250
 SCREEN_WIDTH = 650
 SCREEN_HEIGHT = 700
 LAT_MIN = 7.3
