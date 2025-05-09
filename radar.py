@@ -35,7 +35,6 @@ class Game:
         self.all_sprites = pygame.sprite.Group() # Para AircraftSprite
         self.aircraft_models = [] # Para AircraftModel
 
-        PanelView()
     
 
     def load_exercise_data(self, file_path): # <<<--- Nueva función para cargar
