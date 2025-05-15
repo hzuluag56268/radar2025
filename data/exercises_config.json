@@ -35,10 +35,10 @@
         {"name": "UMPEX1A", "time": 240, "speed": 200, "label": "PNC2044", "acft_type": "SW4"}
     ],
     "5": [
-        {"name": "UMPEX1A", "time": 0, "speed": 30000, "label": "AVA9321", "acft_type": "A320"},
-        {"name": "ESNUT2B", "time": 60, "speed": 260, "label": "JEC5678", "acft_type": "A320"},
-        {"name": "TORAT2A", "time": 120, "speed": 200, "label": "EFY9070", "acft_type": "ATR45"},
-        {"name": "DIMIL6A", "time": 180, "speed": 200, "label": "JEC5470", "acft_type": "A320"},
-        {"name": "UMPEX1A", "time": 240, "speed": 200, "label": "PNC2044", "acft_type": "SW4"}
+        {"name": "TORAT2A", "time": 0, "speed": 30000, "label": "AVA9321", "acft_type": "A320"},
+        {"name": "TORAT2A", "time": 60, "speed": 260, "label": "JEC5678", "acft_type": "A320"},
+        {"name": "TORAT2A", "time": 5, "speed": 200, "label": "EFY9070", "acft_type": "ATR45"},
+        {"name": "TORAT2A", "time": 7, "speed": 200, "label": "JEC5470", "acft_type": "A320"},
+        {"name": "TORAT2A", "time": 9, "speed": 200, "label": "PNC2044", "acft_type": "SW4"}
     ]
 }
