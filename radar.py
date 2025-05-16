@@ -268,7 +268,7 @@ if __name__ == '__main__':
     #    radar_game.exercise_num_str = "1" # Default si no hay input o se cancela
     
     # Forzar un número de ejercicio para prueba si get_exercise_input no está implementado aún
-    radar_game.exercise_num_str = "5" # O el que quieras probar, por ejemplo "5" como tenías.
+    radar_game.exercise_num_str = "6" # O el que quieras probar, por ejemplo "5" como tenías.
     # Recargar datos si exercise_num_str cambió después de la inicialización
     radar_game.aircraft_creation_data = radar_game.load_exercise_data('data/exercises_config.json')
 
