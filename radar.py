@@ -241,6 +241,6 @@ class Game:
 
 if __name__ == '__main__':
     radar_game = Game()
-    radar_game.exercise_num_str = "5" 
+    radar_game.exercise_num_str = "6" 
     radar_game.aircraft_creation_data = radar_game.load_exercise_data('data/exercises_config.json') 
     radar_game.run()

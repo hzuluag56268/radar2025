@@ -10,9 +10,9 @@ STRIP_BORDER_COLOR = (40, 70, 100)
 SEPARATOR_COLOR = (0, 100, 0) 
 TAXIING_TEXT_COLOR = (255, 255, 0) 
 LINE_COLOR = (60, 90, 130)
-ERROR_TEXT_COLOR = (255, 50, 50) # Rojo para errores
+ERROR_TEXT_COLOR = (255, 50, 50)
 
-STRIP_HEIGHT = 95  
+STRIP_HEIGHT = 80 # Reducimos un poco la altura, ya que hay menos filas
 STRIP_PADDING_VERTICAL = 5  
 STRIP_PADDING_HORIZONTAL = 5 
 TEXT_PADDING_X = 5 
@@ -21,10 +21,10 @@ TEXT_PADDING_Y = 3
 class FlightStripView:
     def __init__(self, data, strip_type, font, strip_width):
         self.data = data
-        # Aseguramos que strip_type se almacene en minúsculas para consistencia
-        self.strip_type = strip_type.lower() if isinstance(strip_type, str) else strip_type
+        self.strip_type = strip_type.lower() if isinstance(strip_type, str) else ""
         self.font = font
         self.strip_width = strip_width
+        # Ajustar la altura del rect de la ficha si STRIP_HEIGHT cambió
         self.rect = pygame.Rect(0, 0, self.strip_width - 2 * STRIP_PADDING_HORIZONTAL, STRIP_HEIGHT)
 
     def _render_text_in_cell(self, surface, text, cell_rect, text_color=TEXT_COLOR, center_align=False):
@@ -35,6 +35,8 @@ class FlightStripView:
         else:
             text_rect.left = cell_rect.left + TEXT_PADDING_X
             text_rect.centery = cell_rect.centery
+        
+        # Clipping básico
         if text_rect.width > cell_rect.width - (2 * TEXT_PADDING_X):
             area_to_blit = pygame.Rect(0,0, cell_rect.width - (2 * TEXT_PADDING_X), text_rect.height)
             surface.blit(text_surface, text_rect.topleft, area=area_to_blit)
@@ -50,41 +52,52 @@ class FlightStripView:
         callsign = self.data.get('label', 'N/A')
         acft_type = self.data.get('acft_type', 'N/A')
         speed = f"{self.data.get('speed', 'N/A')}kts" 
-        fixed_location_text = "Cúcuta" 
         route_name_display = self.data.get('name', 'N/A')
         
-        # Geometría (sin cambios)
+        # --- Geometría Modificada ---
         col1_width_ratio = 0.60 
         col1_width = int(self.rect.width * col1_width_ratio)
         col2_width = self.rect.width - col1_width
+
+        # Columna 1 ahora tiene 2 filas
         c1_base_rect = pygame.Rect(self.rect.left, self.rect.top, col1_width, self.rect.height)
-        c1_row_height = self.rect.height // 3
+        c1_row_height = self.rect.height // 2 # Dos filas de igual altura
+
         c1_r1_rect = pygame.Rect(c1_base_rect.left, c1_base_rect.top, c1_base_rect.width, c1_row_height)
-        c1_r2_rect = pygame.Rect(c1_base_rect.left, c1_base_rect.top + c1_row_height, c1_base_rect.width, c1_row_height)
-        c1_r3_rect = pygame.Rect(c1_base_rect.left, c1_base_rect.top + 2 * c1_row_height, c1_base_rect.width, self.rect.height - 2*c1_row_height)
+        # La Fila 2 de la Columna 1 ahora ocupa la mitad inferior
+        c1_r2_rect = pygame.Rect(c1_base_rect.left, c1_base_rect.top + c1_row_height, c1_base_rect.width, self.rect.height - c1_row_height) 
+        
+        # Subdivisión de Columna 1, Fila 2 (para tipo y velocidad)
         c1_r2_subcol_width = c1_r2_rect.width // 2
         c1_r2_left_rect = pygame.Rect(c1_r2_rect.left, c1_r2_rect.top, c1_r2_subcol_width, c1_r2_rect.height)
         c1_r2_right_rect = pygame.Rect(c1_r2_rect.left + c1_r2_subcol_width, c1_r2_rect.top, c1_r2_rect.width - c1_r2_subcol_width, c1_r2_rect.height)
+
+        # Columna 2 sigue teniendo 2 filas
         c2_base_rect = pygame.Rect(self.rect.left + col1_width, self.rect.top, col2_width, self.rect.height)
         c2_row_height = self.rect.height // 2
         c2_r1_rect = pygame.Rect(c2_base_rect.left, c2_base_rect.top, c2_base_rect.width, c2_row_height)
         c2_r2_rect = pygame.Rect(c2_base_rect.left, c2_base_rect.top + c2_row_height, c2_base_rect.width, self.rect.height - c2_row_height)
 
-        # Líneas divisorias (sin cambios)
+        # --- Dibujar líneas de separación Modificadas ---
+        # Línea vertical principal (entre Columna 1 y Columna 2)
         pygame.draw.line(surface, LINE_COLOR, (c1_base_rect.right, self.rect.top), (c1_base_rect.right, self.rect.bottom), 1)
+        
+        # Línea horizontal en Columna 1 (solo una, dividiendo sus dos filas)
         pygame.draw.line(surface, LINE_COLOR, (c1_base_rect.left, c1_r1_rect.bottom), (c1_base_rect.right, c1_r1_rect.bottom), 1)
-        pygame.draw.line(surface, LINE_COLOR, (c1_base_rect.left, c1_r2_rect.bottom), (c1_base_rect.right, c1_r2_rect.bottom), 1)
+        
+        # Línea vertical en Columna 1, Fila 2 (para dividir tipo y velocidad)
         pygame.draw.line(surface, LINE_COLOR, (c1_r2_left_rect.right, c1_r2_rect.top), (c1_r2_left_rect.right, c1_r2_rect.bottom), 1)
+        
+        # Línea horizontal en Columna 2 (dividiendo sus dos filas)
         pygame.draw.line(surface, LINE_COLOR, (c2_base_rect.left, c2_r1_rect.bottom), (c2_base_rect.right, c2_r1_rect.bottom), 1)
 
-        # Lógica de Estado y Tiempo
+        # --- Lógica de Estado y Tiempo (sin cambios) ---
         status_line = "ERR: NO STATE" 
         status_text_color = ERROR_TEXT_COLOR 
         
         event_time = self.data.get('time', float('inf')) 
         is_authorized = self.data.get('_is_authorized_early', False)
 
-        # --- CORRECCIÓN AQUÍ: Comparar con minúsculas ---
         if self.strip_type == "sid": 
             if is_authorized: 
                 status_text_color = TAXIING_TEXT_COLOR 
@@ -95,7 +108,7 @@ class FlightStripView:
                     status_line = f"RODANDO {minutes:02d}:{seconds:02d}"
                 else: 
                     status_line = "LISTO DESP." 
-            else: # SID No autorizado
+            else: 
                 status_text_color = TEXT_COLOR
                 time_to_scheduled_departure = event_time - elapsed_time
                 if time_to_scheduled_departure > 0:
@@ -105,7 +118,6 @@ class FlightStripView:
                 else: 
                     status_line = "PROGRAMADO"
         
-        # --- CORRECCIÓN AQUÍ: Comparar con minúsculas ---
         elif self.strip_type == "star": 
             status_text_color = TEXT_COLOR 
             time_to_arrival_event = event_time - elapsed_time
@@ -116,13 +128,14 @@ class FlightStripView:
             else:
                 status_line = "LISTO LLEG." 
         
-        # IMPRESIÓN DE DEBUG FINAL ANTES DE RENDERIZAR
-        print(f"RENDERING: Label: {callsign}, Type: {self.strip_type}, EventTime: {event_time:.2f}, Elapsed: {elapsed_time:.2f}, Auth: {is_authorized}, Final Status: '{status_line}', Color: {status_text_color}")
+        # --- Renderizar Texto en Celdas (sin "Cúcuta") ---
+        # print(f"RENDERING: Label: {callsign}, Type: {self.strip_type}, EventTime: {event_time:.2f}, Elapsed: {elapsed_time:.2f}, Auth: {is_authorized}, Final Status: '{status_line}', Color: {status_text_color}") # Mantener para debug si es necesario
         
         self._render_text_in_cell(surface, callsign, c1_r1_rect)
         self._render_text_in_cell(surface, acft_type, c1_r2_left_rect)
         self._render_text_in_cell(surface, speed, c1_r2_right_rect)
-        self._render_text_in_cell(surface, fixed_location_text, c1_r3_rect)
+        # No renderizar fixed_location_text (Cúcuta)
+        
         self._render_text_in_cell(surface, status_line, c2_r1_rect, text_color=status_text_color, center_align=True)
         self._render_text_in_cell(surface, route_name_display, c2_r2_rect, center_align=True)
 
@@ -130,12 +143,12 @@ class FlightStripView:
         return self.rect.collidepoint(pos)
 
     def handle_click(self, game_ref):
-        # --- CORRECCIÓN AQUÍ: Comparar con minúsculas ---
         if self.strip_type == "sid": 
             if not self.data.get('_is_authorized_early', False): 
                 game_ref.request_early_departure(self.data['label'])
 
 class SidePanel:
+    # ... (El resto de la clase SidePanel sin cambios respecto a tu última versión) ...
     def __init__(self, screen, font, game_ref):
         self.screen = screen
         self.font = font
@@ -162,12 +175,11 @@ class SidePanel:
                 if not route_name or route_name not in self.game_ref.routes_config:
                     continue 
 
-                route_type = self.game_ref.routes_config[route_name].get('type')
-                if not route_type: # Si el tipo no está definido en routes_config
+                route_type_from_config = self.game_ref.routes_config[route_name].get('type')
+                if not route_type_from_config: 
                     continue
                 
-                # Asegurar que route_type sea minúscula para consistencia al crear FlightStripView
-                route_type = route_type.lower() 
+                route_type = route_type_from_config.lower()
                 
                 event_time = ac_data.get('time', float('inf')) 
                 show_in_panel = False
@@ -183,9 +195,9 @@ class SidePanel:
                 
                 if show_in_panel:
                     strip = FlightStripView(ac_data, route_type, self.font, self.panel_width)
-                    if route_type == "star": # Comparar con minúsculas aquí también
+                    if route_type == "star":
                         self.arrival_strips.append(strip)
-                    elif route_type == "sid": # Comparar con minúsculas aquí también
+                    elif route_type == "sid":
                         self.departure_strips.append(strip)
     
     def draw(self):
@@ -212,7 +224,6 @@ class SidePanel:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             for strip in self.departure_strips: 
                 if strip.is_clicked(mouse_pos):
-                    # strip.strip_type ya está en minúsculas debido al __init__ de FlightStripView
                     if strip.strip_type == "sid": 
                         strip.handle_click(self.game_ref)
                         return True 
