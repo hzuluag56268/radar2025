@@ -4,13 +4,15 @@ from pyproj import Geod
 import json 
 
 # settings.py
-PANEL_WIDTH = 250
+PANEL_WIDTH = 350
 SCREEN_WIDTH = 650
 SCREEN_HEIGHT = 700
 LAT_MIN = 7.3
 LAT_MAX = 8.61
 LON_MIN = -73.08
 LON_MAX = -72.35
+
+TAXIING_DURATION = 180 # 3 minutos en segundos. Asegúrate que esta constante esté definida.
 
 # settings.py
 
