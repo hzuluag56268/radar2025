@@ -49,7 +49,7 @@ class FlightStripView:
     Strips can be clicked to authorize early departure (for SID aircraft).
     """
     
-    def __init__(self, data, strip_type, font, strip_width):
+    def __init__(self, data, routes_config,strip_type, font, strip_width):
         """
         Initialize flight strip view.
         
@@ -60,6 +60,7 @@ class FlightStripView:
             strip_width: Width of the strip (panel width minus padding)
         """
         self.data = data  # Aircraft data dictionary
+        self.routes_config = routes_config  # Routes configuration dictionary
         self.strip_type = strip_type.lower() if isinstance(strip_type, str) else ""
         self.font = font
         self.strip_width = strip_width
@@ -132,6 +133,7 @@ class FlightStripView:
         acft_type = self.data.get('acft_type', 'N/A')
         speed = f"{self.data.get('speed', 'N/A')}kts"
         route_name_display = self.data.get('name', 'N/A')
+         
         
         # --- Calculate cell geometry ---
         # Column widths
@@ -199,12 +201,34 @@ class FlightStripView:
                     status_line = "LISTO DESP."
             else:
                 # Not authorized yet - show time until scheduled departure
-                status_text_color = TEXT_COLOR
+                status_text_color = TAXIING_TEXT_COLOR
                 time_to_scheduled_departure = event_time - elapsed_time
+                minutes = int(time_to_scheduled_departure) // 60
+                seconds = int(time_to_scheduled_departure) % 60
+                
                 if time_to_scheduled_departure > 0:
-                    minutes = int(time_to_scheduled_departure) // 60
-                    seconds = int(time_to_scheduled_departure) % 60
-                    status_line = f"Sale en: {minutes:02d}:{seconds:02d}"
+                    sid_name = self.data.get('name')
+                    rwy = self.routes_config[sid_name].get('rwy')
+                    
+                    taxi_times= {
+                        "16": 300,
+                        "34": 180,
+                        "21": 180,
+                        "03": 240
+                    }
+                    push_back_time= 300
+                    to_holding_short_time = 100
+                    taxi_time = taxi_times.get( str(rwy))
+                    # Show time until scheduled departure
+                    if time_to_scheduled_departure < taxi_time - to_holding_short_time:  # Less than 3 minutes
+                        status_line = f"To Holding . {minutes:01d}:{seconds:02d}"
+                    elif time_to_scheduled_departure < taxi_time :  # Less than 5 minutes
+                        status_line = f"TAXIING: {minutes:02d}:{seconds:02d}"
+                    elif time_to_scheduled_departure < taxi_time + push_back_time:  # Less than 8 minutes
+                        status_line = f"Push back: {minutes:02d}:{seconds:02d}"
+                    else:  
+                        status_text_color = TEXT_COLOR 
+                        status_line = f"Sale en: {minutes:02d}:{seconds:02d}"
                 else:
                     status_line = "PROGRAMADO"
         
@@ -221,7 +245,7 @@ class FlightStripView:
                 status_line = "LISTO LLEG."
         
         # --- Render text in cells ---
-        self._render_text_in_cell(surface, callsign, c1_r1_rect)
+        self._render_text_in_cell(surface,  f'{callsign }', c1_r1_rect)
         self._render_text_in_cell(surface, acft_type, c1_r2_left_rect)
         self._render_text_in_cell(surface, speed, c1_r2_right_rect)
         
@@ -346,7 +370,7 @@ class SidePanel:
                 
                 # Create strip if should be shown
                 if show_in_panel:
-                    strip = FlightStripView(ac_data, route_type, self.font, self.panel_width)
+                    strip = FlightStripView(ac_data, self.game_ref.routes_config, route_type, self.font, self.panel_width)
                     if route_type == "star":
                         self.arrival_strips.append(strip)
                     elif route_type == "sid":

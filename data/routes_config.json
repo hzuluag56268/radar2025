@@ -67,7 +67,8 @@
         ],
         "color": [255, 255, 255],
         "altitude": 1000,
-        "type": "sid"
+        "type": "sid",
+        "rwy": 34
     },
     "DIMIL6A": {
         "coordinates": [
@@ -82,7 +83,8 @@
         ],
         "color": [255, 255, 255],
         "altitude": 1000,
-        "type": "sid"
+        "type": "sid",
+        "rwy": 16
     },
     "TORART1B": {
         "coordinates": [

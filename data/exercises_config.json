@@ -36,7 +36,7 @@
     ],
     "5": [
         {"name": "TORAT2A", "time": 10, "speed": 30000, "label": "AVA9321", "acft_type": "A320"},
-        {"name": "TORAT2A", "time": 15, "speed": 260, "label": "JEC5678", "acft_type": "A320"},
+        {"name": "DIMIL6A", "time": 15, "speed": 260, "label": "JEC5678", "acft_type": "A320"},
         {"name": "TORAT2A", "time": 20, "speed": 200, "label": "EFY9070", "acft_type": "ATR45"},
         {"name": "TORAT2A", "time": 25, "speed": 200, "label": "JEC5470", "acft_type": "A320"},
         {"name": "TORAT2A", "time": 30, "speed": 200, "label": "PNC2044", "acft_type": "SW4"}

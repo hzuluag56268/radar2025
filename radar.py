@@ -67,7 +67,7 @@ class Game:
         # UI components
         self.ui_manager = ui()  # Context menu handler
         self.level_str = ""  # Currently unused
-        self.exercise_num_str = "5"  # Current exercise number (loaded from JSON)
+        self.exercise_num_str = "1"  # Current exercise number (loaded from JSON)
         
         # Route and aircraft data
         self.routes_config = ROUTES  # All route definitions from settings.py
@@ -172,6 +172,8 @@ class Game:
                         # New takeoff time = current time + taxiing duration (3 minutes)
                         actual_takeoff_time = current_time + TAXIING_DURATION 
 
+                        
+                            
                         print(f"Game: Autorizando {aircraft_label_to_launch}. Rodaje inicia en t={current_time:.2f}, despegue programado para t={actual_takeoff_time:.2f}")
 
                         # Mark as authorized and update scheduled time
