@@ -232,6 +232,7 @@ class Game:
                             label_drag_consumed_event = True
                             break
                 elif event.type == pygame.MOUSEMOTION:
+                   
                     # Continue dragging if already dragging
                     for lv in self.label_views:
                         if lv.dragging_label and lv.handle_input_for_drag(event, mouse_pos_tuple, mouse_buttons_pressed):

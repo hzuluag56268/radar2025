@@ -26,7 +26,12 @@ SEPARATOR_COLOR = (0, 100, 0)  # Green separator line
 TAXIING_TEXT_COLOR = (255, 255, 0)  # Yellow for taxiing status
 LINE_COLOR = (60, 90, 130)  # Light blue for grid lines
 ERROR_TEXT_COLOR = (255, 50, 50)  # Red for errors
-
+# Button colors
+BUTTON_BG_COLOR = (30, 50, 70)  # Darker background for buttons
+BUTTON_HOVER_COLOR = (50, 70, 90)  # Lighter when hovering
+BUTTON_TEXT_COLOR = (200, 200, 200)  # Light gray text
+BUTTON_BORDER_COLOR = (80, 100, 120)  # Border for buttons
+BUTTON_ACTIVE_COLOR = (0, 150, 0)  # Green when button is active/
 # Strip dimensions and spacing
 STRIP_HEIGHT = 80  # Height of each flight strip
 STRIP_PADDING_VERTICAL = 5  # Vertical spacing between strips
@@ -65,6 +70,15 @@ class FlightStripView:
         self.font = font
         self.strip_width = strip_width
         
+        # Button states - track which buttons are active
+        self.button_states = {
+            'pushback': False,
+            'taxi': False,
+            'hold_short': False,
+            'takeoff': False
+        }
+        self.hovered_button = None  # Track which button is currently hovered
+
         # Strip rectangle (position set in SidePanel.draw())
         self.rect = pygame.Rect(0, 0, self.strip_width - 2 * STRIP_PADDING_HORIZONTAL, STRIP_HEIGHT)
 
@@ -96,6 +110,33 @@ class FlightStripView:
             surface.blit(text_surface, text_rect.topleft, area=area_to_blit)
         else:
             surface.blit(text_surface, text_rect)
+
+    def _draw_button(self, surface, button_rect, text, is_active=False, is_hovered=False):
+        """
+        Draw a button in the flight strip.
+        
+        Args:
+            surface: Pygame surface to draw on
+            button_rect: Rectangle defining button bounds
+            text: Button label text
+            is_active: If True, button is in active/pressed state
+            is_hovered: If True, button is being hovered over
+        """
+        # Choose button color based on state
+        if is_active: bg_color = BUTTON_ACTIVE_COLOR
+        elif is_hovered: bg_color = BUTTON_HOVER_COLOR
+        else:    bg_color = BUTTON_BG_COLOR
+        
+        # Draw button background
+        pygame.draw.rect(surface, bg_color, button_rect)
+        # Draw button border
+        pygame.draw.rect(surface, BUTTON_BORDER_COLOR, button_rect, 1)
+        
+        # Draw button text (centered)
+        text_surface = self.font.render(text, True, BUTTON_TEXT_COLOR)
+        text_rect = text_surface.get_rect()
+        text_rect.center = button_rect.center
+        surface.blit(text_surface, text_rect)
 
     def draw(self, surface, elapsed_time=0):
         """
@@ -137,13 +178,18 @@ class FlightStripView:
         
         # --- Calculate cell geometry ---
         # Column widths
-        col1_width_ratio = 0.60  # Column 1 is 60% of strip width
+        col1_width_ratio = 0.45  # Column 1 is 60% of strip width
         col1_width = int(self.rect.width * col1_width_ratio)
-        col2_width = self.rect.width - col1_width
+        col2_width_ratio = 0.40
+        col2_width = int(self.rect.width * col2_width_ratio)
+        col3_width_ratio = 0.15
+        col3_width = int(self.rect.width * col3_width_ratio)
+        
+
 
         # Column 1: Two rows
         c1_base_rect = pygame.Rect(self.rect.left, self.rect.top, col1_width, self.rect.height)
-        c1_row_height = self.rect.height // 2  # Each row is half the height
+        c1_row_height = self.rect.height * 0.5  # Each row is half the height
 
         c1_r1_rect = pygame.Rect(c1_base_rect.left, c1_base_rect.top, c1_base_rect.width, c1_row_height)
         c1_r2_rect = pygame.Rect(c1_base_rect.left, c1_base_rect.top + c1_row_height,
@@ -162,6 +208,21 @@ class FlightStripView:
         c2_r2_rect = pygame.Rect(c2_base_rect.left, c2_base_rect.top + c2_row_height,
                                  c2_base_rect.width, self.rect.height - c2_row_height)
 
+        # Column 3: Four rows (buttons)
+        c3_base_rect = pygame.Rect(self.rect.left + col1_width + col2_width, self.rect.top, 
+                                col3_width, self.rect.height)
+        c3_row_height = self.rect.height // 4  # Each button row is 1/4 of height
+
+        c3_r1_rect = pygame.Rect(c3_base_rect.left, c3_base_rect.top, 
+                                c3_base_rect.width, c3_row_height)
+        c3_r2_rect = pygame.Rect(c3_base_rect.left, c3_base_rect.top + c3_row_height,
+                                c3_base_rect.width, c3_row_height)
+        c3_r3_rect = pygame.Rect(c3_base_rect.left, c3_base_rect.top + (2 * c3_row_height),
+                                c3_base_rect.width, c3_row_height)
+        c3_r4_rect = pygame.Rect(c3_base_rect.left, c3_base_rect.top + (3 * c3_row_height),
+                                c3_base_rect.width, self.rect.height - (3 * c3_row_height))
+
+        
         # --- Draw grid lines ---
         # Vertical line between columns
         pygame.draw.line(surface, LINE_COLOR, (c1_base_rect.right, self.rect.top),
@@ -178,6 +239,16 @@ class FlightStripView:
         # Horizontal line in Column 2 (between rows)
         pygame.draw.line(surface, LINE_COLOR, (c2_base_rect.left, c2_r1_rect.bottom),
                         (c2_base_rect.right, c2_r1_rect.bottom), 1)
+
+        # Vertical line between Column 2 and Column 3
+        pygame.draw.line(surface, LINE_COLOR, (c2_base_rect.right, self.rect.top),
+                        (c2_base_rect.right, self.rect.bottom), 1)
+
+        # Horizontal lines in Column 3 (between button rows)
+        for i in range(1, 4):
+            y_pos = c3_base_rect.top + (i * c3_row_height)
+            pygame.draw.line(surface, LINE_COLOR, (c3_base_rect.left, y_pos),
+                            (c3_base_rect.right, y_pos), 1)
 
         # --- Calculate status text and color ---
         status_line = "ERR: NO STATE"
@@ -251,6 +322,20 @@ class FlightStripView:
         
         self._render_text_in_cell(surface, status_line, c2_r1_rect, text_color=status_text_color, center_align=True)
         self._render_text_in_cell(surface, route_name_display, c2_r2_rect, center_align=True)
+        # Draw buttons in Column 3
+        self._draw_button(surface, c3_r1_rect, "Pushback", 
+                        is_active=self.button_states['pushback'],
+                        is_hovered=(self.hovered_button == 'pushback'))
+        self._draw_button(surface, c3_r2_rect, "Taxi", 
+                        is_active=self.button_states['taxi'],
+                        is_hovered=(self.hovered_button == 'taxi'))
+        self._draw_button(surface, c3_r3_rect, "Hold Short", 
+                        is_active=self.button_states['hold_short'],
+                        is_hovered=(self.hovered_button == 'hold_short'))
+        self._draw_button(surface, c3_r4_rect, "Takeoff", 
+                        is_active=self.button_states['takeoff'],
+                        is_hovered=(self.hovered_button == 'takeoff'))
+
 
     def is_clicked(self, pos):
         """
@@ -264,18 +349,76 @@ class FlightStripView:
         """
         return self.rect.collidepoint(pos)
 
-    def handle_click(self, game_ref):
+    def get_clicked_button(self, pos):
+        """
+        Check which button (if any) was clicked.
+        
+        Args:
+            pos: Mouse position (x, y)
+            
+        Returns:
+            Button name string ('pushback', 'taxi', 'hold_short', 'takeoff') or None
+        """
+        # Recalculate button rectangles (same as in _draw_detailed_format)
+        col1_width_ratio = 0.45
+        col1_width = int(self.rect.width * col1_width_ratio)
+        col2_width_ratio = 0.40
+        col2_width = int(self.rect.width * col2_width_ratio)
+        col3_width_ratio = 0.15
+        col3_width = int(self.rect.width * col3_width_ratio)
+        
+        c3_base_rect = pygame.Rect(self.rect.left + col1_width + col2_width, self.rect.top, 
+                                col3_width, self.rect.height)
+        c3_row_height = self.rect.height // 4
+        
+        # Define all button rectangles
+        buttons = [
+            ('pushback', pygame.Rect(c3_base_rect.left, c3_base_rect.top, 
+                                    c3_base_rect.width, c3_row_height)),
+            ('taxi', pygame.Rect(c3_base_rect.left, c3_base_rect.top + c3_row_height, 
+                                c3_base_rect.width, c3_row_height)),
+            ('hold_short', pygame.Rect(c3_base_rect.left, c3_base_rect.top + (2 * c3_row_height), 
+                                    c3_base_rect.width, c3_row_height)),
+            ('takeoff', pygame.Rect(c3_base_rect.left, c3_base_rect.top + (3 * c3_row_height), 
+                                    c3_base_rect.width, self.rect.height - (3 * c3_row_height)))
+        ]
+        
+        # Check which button contains the click position
+        for button_name, button_rect in buttons:
+            if button_rect.collidepoint(pos):
+                return button_name
+        return None
+
+    def handle_click(self, game_ref, mouse_pos):
         """
         Handle click on this strip.
         
         For SID (departure) strips, clicking authorizes early departure.
+        Button clicks toggle button states.
         
         Args:
-            game_ref: Reference to Game instance (for calling request_early_departure)
+            game_ref: Reference to Game instance
+            mouse_pos: Mouse position (x, y)
         """
-        if self.strip_type == "sid":  # Only departures can be authorized
-            if not self.data.get('_is_authorized_early', False):  # Not already authorized
+       
+        # Original click handling for early departure authorization
+        if self.strip_type == "sid":
+
+        # Check if a button was clicked
+            clicked_button = self.get_clicked_button(mouse_pos)
+            if clicked_button:
+                # Toggle button state
+                self.button_states[clicked_button] = not self.button_states[clicked_button]
+                # Here you can add logic to trigger actions based on button state
+                # For example: game_ref.handle_departure_action(self.data['label'], clicked_button)
+                return True
+            
+
+            if not self.data.get('_is_authorized_early', False):
                 game_ref.request_early_departure(self.data['label'])
+            return True
+        
+        return False
 
 
 class SidePanel:
@@ -439,7 +582,23 @@ class SidePanel:
             # Check all departure strips
             for strip in self.departure_strips:
                 if strip.is_clicked(mouse_pos):
-                    if strip.strip_type == "sid":  # Only departures can be clicked
-                        strip.handle_click(self.game_ref)
-                        return True  # Event handled
+                    if strip.strip_type == "sid":
+                        strip.handle_click(self.game_ref, mouse_pos)  # Pass mouse_pos
+                        return True
+
         return False  # Event not handled
+
+    def update_hover(self, mouse_pos):
+        """
+        Update hover state for buttons in strips.
+        
+        Args:
+            mouse_pos: Mouse position (x, y)
+        """
+        for strip in self.arrival_strips + self.departure_strips:
+            if strip.is_clicked(mouse_pos):
+                # Strip is clicked, check which button
+                strip.hovered_button = strip.get_clicked_button(mouse_pos)
+            else:
+                # Mouse not over this strip
+                strip.hovered_button = None
